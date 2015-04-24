@@ -1,12 +1,13 @@
 Ground Control
 ==============
-Ground Control is a Windows sync tracker (server side only) for the GNU Rocket editor.
+Ground Control is a Windows sync tracker (server side only) for the GNU Rocket editor.  
 The editor is C# written and it allows lots of nice little features.
+![](http://bit.ly/1HzbMaJ)
 
 Features
 --------
-Ground Control is has a similar features set the kusma/rocket project.
-However, it includes several little improvements:
+Ground Control is has a similar features set to kusma/GNU Rocket project.  
+However, it includes several improvements:
 - Easier keyboard navigation and editing
 - Side-by-side audio waveform view
 - Mouse friendly user interface
@@ -17,7 +18,7 @@ Keyboard shortcuts
 ------------------
 | Shortcut                 | Action                       |
 |:-------------------------|:-----------------------------|
-| Up/Down/Left/Right       | Move cursor                  |
+| Up/Down/Left/Right/Tab   | Move cursor                  |
 | PgUp/PgDn                | Move cursor page up or down  |
 | Home/End                 | Move cursor to beginning/end |
 | Ctrl+Up/Down/Left/Right  | Jump to closest key          |
