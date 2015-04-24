@@ -26,10 +26,7 @@ namespace System.Windows.Forms
 
         protected override bool IsInputKey(Keys keyData)
         {
-            return keyData != Keys.Tab;
-            //if (keyData == Keys.Up || keyData == Keys.Down) return true;
-            //if (keyData == Keys.Left || keyData == Keys.Right) return true;
-            //return base.IsInputKey(keyData);
+            return true;
         }
 
         protected override void OnEnter(EventArgs e)

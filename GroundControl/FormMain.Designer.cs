@@ -55,10 +55,10 @@
             this.pnlMainArea = new System.Windows.Forms.Panel();
             this.pnlEditor = new System.Windows.Forms.Panel();
             this.splitter1 = new System.Windows.Forms.Splitter();
+            this.tmrUpdateUI = new System.Windows.Forms.Timer(this.components);
             this.pnlDraw = new System.Windows.Forms.PanelEx();
             this.textEdit = new System.Windows.Forms.TextBox();
             this.pnlAudioView = new System.Windows.Forms.PanelEx();
-            this.tmrUpdateUI = new System.Windows.Forms.Timer(this.components);
             this.menuStrip1.SuspendLayout();
             this.pnlMainArea.SuspendLayout();
             this.pnlEditor.SuspendLayout();
@@ -266,6 +266,11 @@
             this.splitter1.TabIndex = 3;
             this.splitter1.TabStop = false;
             // 
+            // tmrUpdateUI
+            // 
+            this.tmrUpdateUI.Enabled = true;
+            this.tmrUpdateUI.Tick += new System.EventHandler(this.tmrUpdateUI_Tick);
+            // 
             // pnlDraw
             // 
             this.pnlDraw.BackColor = System.Drawing.Color.Black;
@@ -291,6 +296,7 @@
             this.textEdit.Visible = false;
             this.textEdit.KeyDown += new System.Windows.Forms.KeyEventHandler(this.textEdit_KeyDown);
             this.textEdit.KeyPress += new System.Windows.Forms.KeyPressEventHandler(this.textEdit_KeyPress);
+            this.textEdit.PreviewKeyDown += new System.Windows.Forms.PreviewKeyDownEventHandler(this.textEdit_PreviewKeyDown);
             // 
             // pnlAudioView
             // 
@@ -303,11 +309,6 @@
             this.pnlAudioView.TabStop = true;
             this.pnlAudioView.SizeChanged += new System.EventHandler(this.pnlAudioView_SizeChanged);
             this.pnlAudioView.Paint += new System.Windows.Forms.PaintEventHandler(this.pnlAudioView_Paint);
-            // 
-            // tmrUpdateUI
-            // 
-            this.tmrUpdateUI.Enabled = true;
-            this.tmrUpdateUI.Tick += new System.EventHandler(this.tmrUpdateUI_Tick);
             // 
             // MainForm
             // 

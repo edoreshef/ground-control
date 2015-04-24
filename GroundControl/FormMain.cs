@@ -222,24 +222,35 @@ namespace GroundControl
 
                 if ((e.Modifiers & Keys.Control) == 0)
                 {
-                    if (e.KeyCode == Keys.Up) newPos.Y--;
-                    if (e.KeyCode == Keys.Down) newPos.Y++;
-                    if (e.KeyCode == Keys.PageUp) newPos.Y -= (ViewBotRowNr - ViewTopRowNr - 1);
+                    if (e.KeyCode == Keys.Up)       newPos.Y--;
+                    if (e.KeyCode == Keys.Down)     newPos.Y++;
+                    if (e.KeyCode == Keys.PageUp)   newPos.Y -= (ViewBotRowNr - ViewTopRowNr - 1);
                     if (e.KeyCode == Keys.PageDown) newPos.Y += (ViewBotRowNr - ViewTopRowNr - 1);
-                    if (e.KeyCode == Keys.Left) newPos.X--;
-                    if (e.KeyCode == Keys.Right) newPos.X++;
-                    if (e.KeyCode == Keys.Home) newPos.Y = 0;
-                    if (e.KeyCode == Keys.End) newPos.Y = RowsCount - 1;
+                    if (e.KeyCode == Keys.Left)     newPos.X--;
+                    if (e.KeyCode == Keys.Right)    newPos.X++;
+                    if (e.KeyCode == Keys.Home)     newPos.Y = 0;
+                    if (e.KeyCode == Keys.End)      newPos.Y = RowsCount - 1;
+                    if (e.KeyCode == Keys.Tab)
+                        if ((e.Modifiers & Keys.Shift) == 0) 
+                            newPos.X++;
+                        else
+                            newPos.X--;
 
                     // Move the cursor
                     MoveCursor(newPos);
                 }
                 else
                 {
-                    if (e.KeyCode == Keys.Up) JumpToNextKey(Direction.Up);
-                    if (e.KeyCode == Keys.Down) JumpToNextKey(Direction.Down);
-                    if (e.KeyCode == Keys.Left) JumpToNextKey(Direction.Left);
+                    if (e.KeyCode == Keys.Up)    JumpToNextKey(Direction.Up);
+                    if (e.KeyCode == Keys.Down)  JumpToNextKey(Direction.Down);
+                    if (e.KeyCode == Keys.Left)  JumpToNextKey(Direction.Left);
                     if (e.KeyCode == Keys.Right) JumpToNextKey(Direction.Right);
+                    if (e.KeyCode == Keys.Tab)
+                        if ((e.Modifiers & Keys.Shift) == 0)
+                            JumpToNextKey(Direction.Right);
+                        else
+                            JumpToNextKey(Direction.Left);
+
                 }
             }
 
@@ -360,7 +371,11 @@ namespace GroundControl
             }
         }
 
-        
+        private void textEdit_PreviewKeyDown(object sender, PreviewKeyDownEventArgs e)
+        {
+            if (e.KeyCode == Keys.Tab) e.IsInputKey = true;
+        }
+
         private void textEdit_KeyDown(object sender, KeyEventArgs e)
         {
             // Cancel editing?
@@ -374,7 +389,7 @@ namespace GroundControl
             }
 
             // Keys that will cause end of editing and move cursor
-            if ((e.KeyCode == Keys.Down) || (e.KeyCode == Keys.Up) || (e.KeyCode == Keys.PageDown) || (e.KeyCode == Keys.PageUp))
+            if ((e.KeyCode == Keys.Down) || (e.KeyCode == Keys.Up) || (e.KeyCode == Keys.PageDown) || (e.KeyCode == Keys.PageUp) || (e.KeyCode == Keys.Tab))
             {
                 // Stop editing
                 ExitEditMode();
