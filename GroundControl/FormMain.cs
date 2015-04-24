@@ -360,6 +360,31 @@ namespace GroundControl
             }
         }
 
+        
+        private void textEdit_KeyDown(object sender, KeyEventArgs e)
+        {
+            // Cancel editing?
+            if (e.KeyCode == Keys.Escape)
+            {
+                // Empty text
+                textEdit.Text = "";
+
+                // Exit edit move
+                ExitEditMode();
+            }
+
+            // Keys that will cause end of editing and move cursor
+            if ((e.KeyCode == Keys.Down) || (e.KeyCode == Keys.Up) || (e.KeyCode == Keys.PageDown) || (e.KeyCode == Keys.PageUp))
+            {
+                // Stop editing
+                ExitEditMode();
+
+                // Forward key to panel to move cursor
+                pnlDraw_KeyDown(null, e);
+            }
+        }
+
+
         private void ExitEditMode()
         {
             // Do we have a valid input

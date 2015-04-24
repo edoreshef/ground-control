@@ -289,6 +289,7 @@
             this.textEdit.Size = new System.Drawing.Size(100, 13);
             this.textEdit.TabIndex = 0;
             this.textEdit.Visible = false;
+            this.textEdit.KeyDown += new System.Windows.Forms.KeyEventHandler(this.textEdit_KeyDown);
             this.textEdit.KeyPress += new System.Windows.Forms.KeyPressEventHandler(this.textEdit_KeyPress);
             // 
             // pnlAudioView
