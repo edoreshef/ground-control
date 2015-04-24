@@ -273,6 +273,19 @@ namespace GroundControl
                 pnlDraw.Invalidate();
             }
 
+            // Bookmarks
+            if (((e.Modifiers & Keys.Control) != 0) && (Utils.NumKeyToInt.ContainsKey(e.KeyCode)))
+            {
+                // Set?
+                if ((e.Modifiers & Keys.Shift) != 0)
+                    SetBookmark(Utils.NumKeyToInt[e.KeyCode]);
+                else
+                    GotoBookmark(Utils.NumKeyToInt[e.KeyCode]);
+            }
+
+            if (e.KeyCode == Keys.K) SetBookmark(-1);
+
+            
             e.Handled = true;
         }
 
@@ -398,7 +411,6 @@ namespace GroundControl
                 pnlDraw_KeyDown(null, e);
             }
         }
-
 
         private void ExitEditMode()
         {
@@ -529,6 +541,7 @@ namespace GroundControl
             var titleFont = new Font("Courier New", 8, FontStyle.Regular);
             var rowFont = new Font("Courier New", 10, FontStyle.Bold);
             var keysTipFont = new Font("Courier New", 8, FontStyle.Bold);
+            var bookmarkFont = new Font("Tahoma", 7, FontStyle.Regular);
             
             var sfNear = new StringFormat() { Alignment = StringAlignment.Near, LineAlignment = StringAlignment.Center };
             var sfFar = new StringFormat() { Alignment = StringAlignment.Far, LineAlignment = StringAlignment.Center };
@@ -624,8 +637,17 @@ namespace GroundControl
                     g.FillRectangle(Brushes.LightGray, keyCountRect);
                     g.DrawString(KeysInRow[iRow].Count.ToString(), keysTipFont, Brushes.Black, keyCountRect.Pan(top:1), sfCenter);
                 }
-
             }
+
+            // Draw bookmarks
+            foreach (var bookmark in Project.Bookmarks)
+            {
+                var bookmarkRect = CellRect(-1, bookmark.Row, 0, 1).Expand(right: RowHeight).Expand(right: -1, bottom: -1).Pan(right: 2);
+                g.FillEllipse(Brushes.DarkRed, bookmarkRect);
+                g.DrawEllipse(Pens.Red, bookmarkRect);
+                g.DrawString(bookmark.Number.ToString(), bookmarkFont, Brushes.White, bookmarkRect.Pan(bottom: 1, right: 0), sfCenter);
+            }
+
 
             // Draw column0 vertical seperators
             g.ResetClip();
@@ -854,6 +876,10 @@ namespace GroundControl
 
         private void JumpToNextKey(Direction direction)
         {
+            // Is cursor is valid position?
+            if (Cursor.X >= ColumnToTrack.Count)
+                return;
+
             switch (direction)
             {
                 case Direction.Up:
@@ -1182,6 +1208,11 @@ namespace GroundControl
                     Modified = false;
                     UpdateApplicationTitle();
 
+                    // Fix bookmarks
+                    foreach (var bookmark in Project.Bookmarks)
+                        if (bookmark.Number == -1)
+                            bookmark.Number = Enumerable.Range(1, 9).FirstOrDefault(index => !Project.Bookmarks.Any(b => b.Number == index));
+
                     // Rebuild all key maps
                     RebuildKeyMaps();
 
@@ -1246,6 +1277,76 @@ namespace GroundControl
 
             // Update form property    
             Text = title;
+        }
+
+        #endregion
+
+        #region Bookmarks related
+
+        private void SetBookmark(int number)
+        {
+            // Remove bookmark from current row if already exists
+            var eraseBookmark = false;
+            var bookmark = Project.Bookmarks.FirstOrDefault(b => b.Row == Cursor.Y);
+            if (bookmark != null)
+            {
+                // Check if this is a bookmark erase (toggling of bookmark)
+                eraseBookmark = (bookmark.Number == number) || (number == -1);
+
+                // Anyway, remove bookmark
+                Project.Bookmarks.Remove(bookmark);
+            }
+
+            // Remove bookmark if number already exists somewhere else
+            bookmark = Project.Bookmarks.FirstOrDefault(b => b.Number == number);
+            if (bookmark != null)
+                Project.Bookmarks.Remove(bookmark);
+
+            // Create new bookmark (if we need to)
+            if (!eraseBookmark)
+            {
+                // create a new bookmark
+                bookmark = new Bookmark() { Number = number, Row = Cursor.Y };
+                Project.Bookmarks.Add(bookmark);
+
+                // If this is an automatic index finding bookmark, find index
+                if (bookmark.Number == -1)
+                    bookmark.Number = Enumerable.Range(1, 9).FirstOrDefault(index => !Project.Bookmarks.Any(b => b.Number == index));
+            }
+
+            // Refresh screen
+            pnlDraw.Invalidate();
+        }
+
+        private void GotoBookmark(int number)
+        {
+            Bookmark target = null;
+
+            // is it "Next bookmark"?
+            if (number == -1)
+            {
+                // get next bookmark
+                target = Project.Bookmarks.OrderBy(t => t.Row).Where(t => t.Row > Cursor.Y).FirstOrDefault();
+
+                // if next could not be found, go to first
+                if (target == null)
+                    target = Project.Bookmarks.FirstOrDefault();
+            }
+            else
+            {
+                // Find relevent bookmark
+                target = Project.Bookmarks.FirstOrDefault(b => b.Number == number);
+            }
+
+            // Did we actually manage to find a bookmark?
+            if (target != null)
+            {
+                // Move cursor
+                MoveCursor(new Point(Cursor.X, target.Row));
+
+                // Make sure we're centered in view
+                vScrollBar1.Value = Math.Max(0, (Cursor.Y + 1) * RowHeight + Row0Height - (pnlDraw.ClientSize.Height / 2));
+            }
         }
 
         #endregion

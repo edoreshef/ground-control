@@ -31,6 +31,10 @@ namespace GroundControl
         [XmlArrayItem("track", typeof(TrackInfo))]
         [XmlArray("tracks")]
         public List<TrackInfo> Tracks = new List<TrackInfo>();
+
+        [XmlArrayItem("bookmark", typeof(Bookmark))]
+        [XmlArray("bookmarks")]
+        public List<Bookmark> Bookmarks = new List<Bookmark>();
     }
 
     public class TrackInfo
@@ -60,5 +64,14 @@ namespace GroundControl
         {
             return this.Row.CompareTo(other.Row);
         }
+    }
+
+    public class Bookmark
+    {
+        [XmlAttribute("row")]
+        public int Row;
+
+        [XmlAttribute("number")]
+        public int Number = -1;
     }
 }

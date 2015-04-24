@@ -13,6 +13,8 @@ However, it includes several improvements:
 - Mouse friendly user interface
 - Key position sliding
 - Track removing/hiding/renaming/reordering
+- Underlying file format is the same as the original GNU Rocket editor
+- Delphi numeric style bookmarks
 
 Keyboard shortcuts
 ------------------
@@ -26,6 +28,9 @@ Keyboard shortcuts
 | Enter                    | Enter key frame value        |
 | Del                      | Delete key frame             |
 | i                        | Enumerate interpolation mode |
+| k                        | Set/Clear bookmark           |
+| Ctrl+Shift+1/2/3..       | Set/Clear numbered bookmark  |
+| Ctrl+1/2/3..             | Go to a numbered bookmark    |
 | Space                    | Pause/Resume demo            |
 | Shift+Up/Down/Left/Right | Select                       |
 | Ctrl+C                   | Copy                         |

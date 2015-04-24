@@ -81,6 +81,9 @@ namespace GroundControl
             // Add items to list
             listTracks.Items.Clear();
             m_Tracks.ForEach(t=>listTracks.Items.Add(new ListViewItem() {Text = t.Name, Checked = t.Visible, Tag = t}));
+
+            // Resize by content
+            listTracks.AutoResizeColumn(0, ColumnHeaderAutoResizeStyle.ColumnContent);
         }
 
         private void listTracks_ItemCheck(object sender, ItemCheckEventArgs e)
