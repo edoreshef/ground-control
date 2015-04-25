@@ -59,10 +59,16 @@
             this.pnlDraw = new System.Windows.Forms.PanelEx();
             this.textEdit = new System.Windows.Forms.TextBox();
             this.pnlAudioView = new System.Windows.Forms.PanelEx();
+            this.statusStrip1 = new System.Windows.Forms.StatusStrip();
+            this.toolStripCurrentRow = new System.Windows.Forms.ToolStripStatusLabel();
+            this.toolStripSpacer = new System.Windows.Forms.ToolStripStatusLabel();
+            this.toolStripCurrentValue = new System.Windows.Forms.ToolStripStatusLabel();
+            this.toolStripInterpolation = new System.Windows.Forms.ToolStripStatusLabel();
             this.menuStrip1.SuspendLayout();
             this.pnlMainArea.SuspendLayout();
             this.pnlEditor.SuspendLayout();
             this.pnlDraw.SuspendLayout();
+            this.statusStrip1.SuspendLayout();
             this.SuspendLayout();
             // 
             // hScrollBar1
@@ -238,6 +244,7 @@
             // 
             // pnlMainArea
             // 
+            this.pnlMainArea.Controls.Add(this.statusStrip1);
             this.pnlMainArea.Controls.Add(this.hScrollBar1);
             this.pnlMainArea.Controls.Add(this.vScrollBar1);
             this.pnlMainArea.Controls.Add(this.pnlEditor);
@@ -310,6 +317,61 @@
             this.pnlAudioView.SizeChanged += new System.EventHandler(this.pnlAudioView_SizeChanged);
             this.pnlAudioView.Paint += new System.Windows.Forms.PaintEventHandler(this.pnlAudioView_Paint);
             // 
+            // statusStrip1
+            // 
+            this.statusStrip1.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
+            this.toolStripCurrentRow,
+            this.toolStripSpacer,
+            this.toolStripInterpolation,
+            this.toolStripCurrentValue});
+            this.statusStrip1.Location = new System.Drawing.Point(0, 455);
+            this.statusStrip1.Name = "statusStrip1";
+            this.statusStrip1.Size = new System.Drawing.Size(962, 24);
+            this.statusStrip1.TabIndex = 4;
+            this.statusStrip1.Text = "statusStrip1";
+            // 
+            // toolStripCurrentRow
+            // 
+            this.toolStripCurrentRow.AutoSize = false;
+            this.toolStripCurrentRow.BorderSides = ((System.Windows.Forms.ToolStripStatusLabelBorderSides)((((System.Windows.Forms.ToolStripStatusLabelBorderSides.Left | System.Windows.Forms.ToolStripStatusLabelBorderSides.Top) 
+            | System.Windows.Forms.ToolStripStatusLabelBorderSides.Right) 
+            | System.Windows.Forms.ToolStripStatusLabelBorderSides.Bottom)));
+            this.toolStripCurrentRow.BorderStyle = System.Windows.Forms.Border3DStyle.SunkenOuter;
+            this.toolStripCurrentRow.Name = "toolStripCurrentRow";
+            this.toolStripCurrentRow.Size = new System.Drawing.Size(100, 19);
+            this.toolStripCurrentRow.Text = "Row: 0";
+            this.toolStripCurrentRow.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
+            // 
+            // toolStripSpacer
+            // 
+            this.toolStripSpacer.Name = "toolStripSpacer";
+            this.toolStripSpacer.Size = new System.Drawing.Size(647, 19);
+            this.toolStripSpacer.Spring = true;
+            // 
+            // toolStripCurrentValue
+            // 
+            this.toolStripCurrentValue.AutoSize = false;
+            this.toolStripCurrentValue.BorderSides = ((System.Windows.Forms.ToolStripStatusLabelBorderSides)((((System.Windows.Forms.ToolStripStatusLabelBorderSides.Left | System.Windows.Forms.ToolStripStatusLabelBorderSides.Top) 
+            | System.Windows.Forms.ToolStripStatusLabelBorderSides.Right) 
+            | System.Windows.Forms.ToolStripStatusLabelBorderSides.Bottom)));
+            this.toolStripCurrentValue.BorderStyle = System.Windows.Forms.Border3DStyle.SunkenOuter;
+            this.toolStripCurrentValue.Name = "toolStripCurrentValue";
+            this.toolStripCurrentValue.Size = new System.Drawing.Size(100, 19);
+            this.toolStripCurrentValue.Text = "0.00";
+            this.toolStripCurrentValue.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
+            // 
+            // toolStripInterpolation
+            // 
+            this.toolStripInterpolation.AutoSize = false;
+            this.toolStripInterpolation.BorderSides = ((System.Windows.Forms.ToolStripStatusLabelBorderSides)((((System.Windows.Forms.ToolStripStatusLabelBorderSides.Left | System.Windows.Forms.ToolStripStatusLabelBorderSides.Top) 
+            | System.Windows.Forms.ToolStripStatusLabelBorderSides.Right) 
+            | System.Windows.Forms.ToolStripStatusLabelBorderSides.Bottom)));
+            this.toolStripInterpolation.BorderStyle = System.Windows.Forms.Border3DStyle.SunkenOuter;
+            this.toolStripInterpolation.Name = "toolStripInterpolation";
+            this.toolStripInterpolation.Size = new System.Drawing.Size(100, 19);
+            this.toolStripInterpolation.Text = "Step";
+            this.toolStripInterpolation.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
+            // 
             // MainForm
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
@@ -325,9 +387,12 @@
             this.menuStrip1.ResumeLayout(false);
             this.menuStrip1.PerformLayout();
             this.pnlMainArea.ResumeLayout(false);
+            this.pnlMainArea.PerformLayout();
             this.pnlEditor.ResumeLayout(false);
             this.pnlDraw.ResumeLayout(false);
             this.pnlDraw.PerformLayout();
+            this.statusStrip1.ResumeLayout(false);
+            this.statusStrip1.PerformLayout();
             this.ResumeLayout(false);
             this.PerformLayout();
 
@@ -364,6 +429,11 @@
         private System.Windows.Forms.ToolStripSeparator toolStripMenuItem4;
         private System.Windows.Forms.ToolStripMenuItem trackManagerToolStripMenuItem;
         private System.Windows.Forms.Timer tmrUpdateUI;
+        private System.Windows.Forms.StatusStrip statusStrip1;
+        private System.Windows.Forms.ToolStripStatusLabel toolStripCurrentRow;
+        private System.Windows.Forms.ToolStripStatusLabel toolStripSpacer;
+        private System.Windows.Forms.ToolStripStatusLabel toolStripInterpolation;
+        private System.Windows.Forms.ToolStripStatusLabel toolStripCurrentValue;
     }
 }
 

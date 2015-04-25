@@ -15,6 +15,7 @@ However, it includes several improvements:
 - Track removing/hiding/renaming/reordering
 - Underlying file format is the same as the original GNU Rocket editor
 - Delphi numeric style bookmarks
+- Creation of keys based on "current" track value
 
 Keyboard shortcuts
 ------------------

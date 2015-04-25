@@ -1,7 +1,4 @@
-﻿// Delete of columns
-// Bookmarks
-
-using JWC;
+﻿using JWC;
 using NAudio.Wave;
 using System;
 using System.Collections.Generic;
@@ -297,6 +294,10 @@ namespace GroundControl
                 // Should we start editing?
                 if (EditInKey == new Point(-1, -1))
                 {
+                    // Ignore if we're outside of valid range
+                    if (Cursor.X >= ColumnToTrack.Count)
+                        return;
+                    
                     // Setup editing
                     textEdit.Bounds = CellRect(Cursor.X, Cursor.Y);
                     textEdit.Font = new Font("Courier New", 10, FontStyle.Bold);
@@ -304,13 +305,9 @@ namespace GroundControl
                     // Set start text
                     if (e.KeyChar == '\r')
                     {
-                        // Do we have a cell in place?
-                        var cell = GetKeyFromCell(Cursor.X, Cursor.Y);
-                        if (cell == null)
-                            return;
-
-                        // Assign value
-                        textEdit.Text = cell.Value.ToString("0.00");
+                        // Get current value
+                        var track = ColumnToTrack[Cursor.X];
+                        textEdit.Text = track.GetValue(Cursor.Y).ToString("0.00");
                     }
                     else
                     {
@@ -399,6 +396,9 @@ namespace GroundControl
 
                 // Exit edit move
                 ExitEditMode();
+
+                // For some reason "ESC" causes a windows "beep", this cancels it
+                e.SuppressKeyPress = true;
             }
 
             // Keys that will cause end of editing and move cursor
@@ -495,6 +495,27 @@ namespace GroundControl
                 hScrollBar1.Value = Cursor.X * ColumnWidth;
             if (ColumnToViewX(Cursor.X + 1) > pnlDraw.ClientSize.Width)
                 hScrollBar1.Value = Math.Max(0, (Cursor.X + 1) * ColumnWidth + Column0Width - pnlDraw.ClientSize.Width);
+
+            // Update status bar
+            toolStripCurrentRow.Text = "Row: " + Cursor.Y;
+            if (Cursor.X < ColumnToTrack.Count)
+            {
+                // Display current track/row value
+                var track = ColumnToTrack[Cursor.X];
+                toolStripCurrentValue.Text = track.GetValue(Cursor.Y).ToString("0.00");
+
+                // Display interpolation
+                var keyIndex = track.FindKeyByRow(Cursor.Y, true);
+                if (keyIndex >= 0)
+                    toolStripInterpolation.Text = track.Keys[keyIndex].Interpolation.ToString();
+                else
+                    toolStripInterpolation.Text = "";
+            }
+            else
+            {
+                toolStripCurrentValue.Text = "";
+                toolStripInterpolation.Text = "";
+            }
 
             // redraw window
             pnlDraw.Invalidate();
@@ -819,10 +840,10 @@ namespace GroundControl
             if (column >= ColumnToTrack.Count)
                 return null;
 
-            if (includePrevKey)
-                return ColumnToTrack[column].Keys.Where(t => t.Row <= row).LastOrDefault();
-            else
-                return ColumnToTrack[column].Keys.FirstOrDefault(t => t.Row == row);
+            // Get key
+            var track = ColumnToTrack[column];
+            var index = track.FindKeyByRow(row, includePrevKey);
+            return index == -1 ? null : track.Keys[index];
         }
 
         private Point GetCellFromKey(KeyInfo key)

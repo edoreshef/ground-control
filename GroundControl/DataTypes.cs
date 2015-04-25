@@ -47,6 +47,69 @@ namespace GroundControl
 
         [XmlElement("key")]
         public List<KeyInfo> Keys = new List<KeyInfo>();
+
+        public int FindKeyByRow(int row, bool includePrevKey = false)
+        {
+            // Search for key
+            var index = Keys.BinarySearch(new KeyInfo() { Row = row });
+
+            // Is it an exact find?
+            if (index >= 0)
+                return index;
+            else
+                return includePrevKey ? ~index - 1 : -1;
+        }
+
+        public float GetValue(float row, out float sinceRows)
+        {
+            // If we have no keys at all, return a constant 0 
+            if (Keys.Count == 0)
+            {
+                sinceRows = row;
+                return 0.0f;
+            }
+
+            // find key at/before the current row
+            var index = FindKeyByRow((int)row, true);
+
+            // is "row" before the first key?
+            if (index < 0)
+            {
+                sinceRows = row - Keys[0].Row;
+                return Keys[0].Value;
+            }
+            
+            // did we get the last key?
+            if (index == Keys.Count - 1)
+            {
+                sinceRows = row - Keys[index].Row;
+                return Keys[index].Value;
+            }
+
+            // interpolate according to key-type 
+            sinceRows = row - Keys[index].Row;
+            float t = sinceRows / (Keys[index + 1].Row - Keys[index].Row);
+            switch (Keys[index].Interpolation)
+            {
+                case 0/*Step*/:
+                    return Keys[index].Value;
+
+                case 2 /*Smooth*/:
+                    t = t * t * (3 - 2 * t);
+                    break;
+
+                case 3/*Ramp*/:
+                    t = t * t;
+                    break;
+            }
+            return Keys[index].Value + (Keys[index + 1].Value - Keys[index].Value) * t;
+        }
+
+        public float GetValue(float row)
+        {
+            float temp;
+            return GetValue(row, out temp);
+        }
     }
 
     public class KeyInfo : IComparable<KeyInfo>
