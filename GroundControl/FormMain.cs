@@ -1555,6 +1555,9 @@ namespace GroundControl
         {
             // Refresh trackManager option
             trackManagerToolStripMenuItem.Checked = TrackEditor.Visible;
+
+            toolStripConnectionStatus.Text      = server.IsConnected() ? "Connected" : "Disconnected";
+            toolStripConnectionStatus.ForeColor = server.IsConnected() ? Color.DarkGreen : Color.DarkRed;
         }
 
         private void OnMruFile(int number, String filename)

@@ -81,15 +81,11 @@ namespace GroundControl
 
         private void updateTimer_Tick(object sender, EventArgs e)
         {
-            // Exit if there is no connection
-            if (connectedClient == null)
-                return;
-
             // Is there a command to process?
-            while (connectedClient.Available > 0)
+            while ((connectedClient != null) && (connectedClient.Client.Poll(0, SelectMode.SelectRead)))
             {
                 // Get command
-                var cmd = stream.ReadByte();
+                var cmd = read(1)[0];
 
                 // Execute command
                 switch((Command)cmd)
@@ -97,7 +93,7 @@ namespace GroundControl
                     case 0: 
                         // DO NOTHING - This is an invalid command that often is received when send command as 32bit
                         break;
-
+    
                     case Command.SetRow:
                         var row = BitConverter.ToInt32(read(4).Reverse().ToArray(), 0);
                         if (RowSet != null)
@@ -191,6 +187,11 @@ namespace GroundControl
             write(BitConverter.GetBytes(row).Reverse().ToArray());
         }
 
+        public bool IsConnected()
+        {
+            return (connectedClient != null) && (connectedClient.Client != null) && (connectedClient.Client.Connected);
+        }
+
         private void NewConnection(TcpClient client)
         {
             // Dump old client
@@ -219,6 +220,9 @@ namespace GroundControl
 
         private void CloseConnection()
         {
+            if (connectedClient == null)
+                return;
+
             connectedClient.Close();
             connectedClient = null;
             stream = null;
@@ -229,13 +233,23 @@ namespace GroundControl
             var buf = new byte[bytes];
             var bufIndex = 0;
 
-            while (buf.Length - bufIndex > 0)
+            try
             {
-                var retLen = stream.Read(buf, bufIndex, buf.Length - bufIndex);
-                if (retLen == 0)
-                    0.ToString();
+                while (buf.Length - bufIndex > 0)
+                {
+                    var retLen = stream.Read(buf, bufIndex, buf.Length - bufIndex);
+                    if (retLen == 0)
+                    {
+                        CloseConnection();
+                        break;
+                    }
 
-                bufIndex += retLen;
+                    bufIndex += retLen;
+                }
+            }
+            catch(Exception)
+            {
+                CloseConnection();
             }
 
             return buf;

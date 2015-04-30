@@ -4,6 +4,12 @@ Ground Control is a Windows sync tracker (server side only) for the GNU Rocket e
 The editor is C# written and it allows lots of nice little features.
 ![](http://bit.ly/1HzbMaJ)
 
+Installing
+----------
+Ground Control is portable so there is no setup involved.  
+The only prerequisite is [.NET framework v4.5](https://www.microsoft.com/en-us/download/details.aspx?id=30653)  
+To use Ground Control download the [latest binaries](http://bit.ly/ground-control-bin), extract files and execute GroundControl.exe
+
 Features
 --------
 Ground Control is has a similar features set to kusma/GNU Rocket project.  
