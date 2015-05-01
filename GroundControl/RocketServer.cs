@@ -16,7 +16,8 @@ namespace GroundControl
         public delegate void GetTrackDelegate(object sender, string trackName);
         public delegate void RowSetDelegate(object sender, int rowNr);
         public event GetTrackDelegate GetTrack;
-        public event RowSetDelegate RowSet;
+        public event RowSetDelegate   RowSet;
+        public event EventHandler     ClientConnected;
 
         public Dictionary<string, int> TrackMap = new Dictionary<string, int>();
         public bool PlayMode;
@@ -211,11 +212,15 @@ namespace GroundControl
             if (cGreet != ClientGreet)
                 CloseConnection();
 
-            // Assume start play mode is stop
-            PlayMode = false;
+            // Force connecting client to pause
+            Pause();
 
             // Clean track list
             TrackMap = new Dictionary<string, int>();
+
+            // Fire "new client connected" event
+            if (ClientConnected != null)
+                ClientConnected(this, null);
         }
 
         private void CloseConnection()

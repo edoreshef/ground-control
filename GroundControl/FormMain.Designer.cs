@@ -54,17 +54,17 @@
             this.trackManagerToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.pnlMainArea = new System.Windows.Forms.Panel();
             this.statusStrip1 = new System.Windows.Forms.StatusStrip();
+            this.toolStripConnectionStatus = new System.Windows.Forms.ToolStripStatusLabel();
             this.toolStripCurrentRow = new System.Windows.Forms.ToolStripStatusLabel();
             this.toolStripSpacer = new System.Windows.Forms.ToolStripStatusLabel();
             this.toolStripInterpolation = new System.Windows.Forms.ToolStripStatusLabel();
             this.toolStripCurrentValue = new System.Windows.Forms.ToolStripStatusLabel();
             this.pnlEditor = new System.Windows.Forms.Panel();
             this.splitter1 = new System.Windows.Forms.Splitter();
+            this.tmrUpdateUI = new System.Windows.Forms.Timer(this.components);
             this.pnlDraw = new System.Windows.Forms.PanelEx();
             this.textEdit = new System.Windows.Forms.TextBox();
             this.pnlAudioView = new System.Windows.Forms.PanelEx();
-            this.tmrUpdateUI = new System.Windows.Forms.Timer(this.components);
-            this.toolStripConnectionStatus = new System.Windows.Forms.ToolStripStatusLabel();
             this.menuStrip1.SuspendLayout();
             this.pnlMainArea.SuspendLayout();
             this.statusStrip1.SuspendLayout();
@@ -74,7 +74,7 @@
             // 
             // hScrollBar1
             // 
-            this.hScrollBar1.Location = new System.Drawing.Point(3, 467);
+            this.hScrollBar1.Location = new System.Drawing.Point(3, 437);
             this.hScrollBar1.Name = "hScrollBar1";
             this.hScrollBar1.Size = new System.Drawing.Size(937, 17);
             this.hScrollBar1.TabIndex = 0;
@@ -84,7 +84,7 @@
             // 
             this.vScrollBar1.Location = new System.Drawing.Point(945, 0);
             this.vScrollBar1.Name = "vScrollBar1";
-            this.vScrollBar1.Size = new System.Drawing.Size(17, 461);
+            this.vScrollBar1.Size = new System.Drawing.Size(17, 439);
             this.vScrollBar1.TabIndex = 1;
             this.vScrollBar1.ValueChanged += new System.EventHandler(this.ScrollBar_ValueChanged);
             // 
@@ -245,14 +245,13 @@
             // 
             // pnlMainArea
             // 
-            this.pnlMainArea.Controls.Add(this.statusStrip1);
             this.pnlMainArea.Controls.Add(this.hScrollBar1);
             this.pnlMainArea.Controls.Add(this.vScrollBar1);
             this.pnlMainArea.Controls.Add(this.pnlEditor);
             this.pnlMainArea.Dock = System.Windows.Forms.DockStyle.Fill;
             this.pnlMainArea.Location = new System.Drawing.Point(0, 24);
             this.pnlMainArea.Name = "pnlMainArea";
-            this.pnlMainArea.Size = new System.Drawing.Size(962, 479);
+            this.pnlMainArea.Size = new System.Drawing.Size(962, 455);
             this.pnlMainArea.TabIndex = 2;
             // 
             // statusStrip1
@@ -263,11 +262,25 @@
             this.toolStripSpacer,
             this.toolStripInterpolation,
             this.toolStripCurrentValue});
-            this.statusStrip1.Location = new System.Drawing.Point(0, 455);
+            this.statusStrip1.Location = new System.Drawing.Point(0, 479);
             this.statusStrip1.Name = "statusStrip1";
             this.statusStrip1.Size = new System.Drawing.Size(962, 24);
             this.statusStrip1.TabIndex = 4;
             this.statusStrip1.Text = "statusStrip1";
+            // 
+            // toolStripConnectionStatus
+            // 
+            this.toolStripConnectionStatus.AutoSize = false;
+            this.toolStripConnectionStatus.BorderSides = ((System.Windows.Forms.ToolStripStatusLabelBorderSides)((((System.Windows.Forms.ToolStripStatusLabelBorderSides.Left | System.Windows.Forms.ToolStripStatusLabelBorderSides.Top) 
+            | System.Windows.Forms.ToolStripStatusLabelBorderSides.Right) 
+            | System.Windows.Forms.ToolStripStatusLabelBorderSides.Bottom)));
+            this.toolStripConnectionStatus.BorderStyle = System.Windows.Forms.Border3DStyle.SunkenOuter;
+            this.toolStripConnectionStatus.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Bold);
+            this.toolStripConnectionStatus.ForeColor = System.Drawing.Color.DarkRed;
+            this.toolStripConnectionStatus.Name = "toolStripConnectionStatus";
+            this.toolStripConnectionStatus.Size = new System.Drawing.Size(100, 19);
+            this.toolStripConnectionStatus.Text = "Disconnected";
+            this.toolStripConnectionStatus.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
             // 
             // toolStripCurrentRow
             // 
@@ -330,6 +343,11 @@
             this.splitter1.TabIndex = 3;
             this.splitter1.TabStop = false;
             // 
+            // tmrUpdateUI
+            // 
+            this.tmrUpdateUI.Enabled = true;
+            this.tmrUpdateUI.Tick += new System.EventHandler(this.tmrUpdateUI_Tick);
+            // 
             // pnlDraw
             // 
             this.pnlDraw.BackColor = System.Drawing.Color.Black;
@@ -369,41 +387,23 @@
             this.pnlAudioView.SizeChanged += new System.EventHandler(this.pnlAudioView_SizeChanged);
             this.pnlAudioView.Paint += new System.Windows.Forms.PaintEventHandler(this.pnlAudioView_Paint);
             // 
-            // tmrUpdateUI
-            // 
-            this.tmrUpdateUI.Enabled = true;
-            this.tmrUpdateUI.Tick += new System.EventHandler(this.tmrUpdateUI_Tick);
-            // 
-            // toolStripConnectionStatus
-            // 
-            this.toolStripConnectionStatus.AutoSize = false;
-            this.toolStripConnectionStatus.BorderSides = ((System.Windows.Forms.ToolStripStatusLabelBorderSides)((((System.Windows.Forms.ToolStripStatusLabelBorderSides.Left | System.Windows.Forms.ToolStripStatusLabelBorderSides.Top) 
-            | System.Windows.Forms.ToolStripStatusLabelBorderSides.Right) 
-            | System.Windows.Forms.ToolStripStatusLabelBorderSides.Bottom)));
-            this.toolStripConnectionStatus.BorderStyle = System.Windows.Forms.Border3DStyle.SunkenOuter;
-            this.toolStripConnectionStatus.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Bold);
-            this.toolStripConnectionStatus.ForeColor = System.Drawing.Color.DarkRed;
-            this.toolStripConnectionStatus.Name = "toolStripConnectionStatus";
-            this.toolStripConnectionStatus.Size = new System.Drawing.Size(100, 19);
-            this.toolStripConnectionStatus.Text = "Disconnected";
-            this.toolStripConnectionStatus.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
-            // 
             // MainForm
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(962, 503);
             this.Controls.Add(this.pnlMainArea);
+            this.Controls.Add(this.statusStrip1);
             this.Controls.Add(this.menuStrip1);
             this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
             this.MainMenuStrip = this.menuStrip1;
             this.Name = "MainForm";
             this.Text = "Ground Control";
+            this.FormClosing += new System.Windows.Forms.FormClosingEventHandler(this.MainForm_FormClosing);
             this.Resize += new System.EventHandler(this.MainForm_Resize);
             this.menuStrip1.ResumeLayout(false);
             this.menuStrip1.PerformLayout();
             this.pnlMainArea.ResumeLayout(false);
-            this.pnlMainArea.PerformLayout();
             this.statusStrip1.ResumeLayout(false);
             this.statusStrip1.PerformLayout();
             this.pnlEditor.ResumeLayout(false);

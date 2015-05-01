@@ -158,6 +158,11 @@ namespace GroundControl
 
         private void FormTrackEditor_FormClosing(object sender, FormClosingEventArgs e)
         {
+            // Are we shuting down?
+            if (e.CloseReason == CloseReason.FormOwnerClosing)
+                return;
+
+            // Do not really close the form, just hide it
             e.Cancel = true;
             Visible = false;
         }

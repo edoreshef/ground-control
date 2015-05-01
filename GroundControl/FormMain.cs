@@ -90,6 +90,7 @@ namespace GroundControl
             server = new RocketServer();
             server.GetTrack += server_GetTrack;
             server.RowSet += server_RowSet;
+            server.ClientConnected += server_ClientConnected;
 
             // Force resize to reposition all controls
             MainForm_Resize(null, null);
@@ -445,7 +446,7 @@ namespace GroundControl
             pnlDraw.Invalidate();
         }
 
-        private void MoveCursor(Point newPosition)
+        private void MoveCursor(Point newPosition, bool remoteSetRow = false)
         {
             // Check if cursor has moved
             if (newPosition.Equals(Cursor))
@@ -478,8 +479,9 @@ namespace GroundControl
                                             Math.Abs(SelectionStart.Y - Cursor.Y) + 1);
             }
 
-            // Update client
-            server.SetRow(Cursor.Y);
+            // Update client (only if cursor change was caused by UI
+            if (!remoteSetRow)
+                server.SetRow(Cursor.Y);
 
             // During playback, make sure cursor does not go below mid screen
             var maxViewHeight = server.PlayMode ? pnlDraw.ClientSize.Height / 2 : pnlDraw.ClientSize.Height;
@@ -529,7 +531,7 @@ namespace GroundControl
         private void server_RowSet(object sender, int rowNr)
         {
             // Move cursor
-            MoveCursor(new Point(Cursor.X, rowNr));
+            MoveCursor(new Point(Cursor.X, rowNr), true);
         }
 
         private void server_GetTrack(object sender, string trackName)
@@ -550,6 +552,12 @@ namespace GroundControl
             // Send all keys
             foreach (var key in track.Keys)
                 server.SetKey(trackName, key.Row, key.Value, key.Interpolation);
+        }
+
+        private void server_ClientConnected(object sender, EventArgs e)
+        {
+            // Client just got connected, send him the current position
+            server.SetRow(Cursor.Y);
         }
 
         #endregion
@@ -598,8 +606,8 @@ namespace GroundControl
             ViewBotRowNr = (ViewTopLeftOffset.Y + pnlDraw.ClientSize.Height - Row0Height) / RowHeight;
 
             // Draw horizontal lines
-            int viewLastColumnRight = Math.Min(columnsCount * ColumnWidth - ViewTopLeftOffset.X + Column0Width, pnlDraw.ClientSize.Width);
-            g.Clip = new Region(CellRect(-1, -1, columnsCount, RowsCount).Expand(left: -Column0Width, top: -Row0Height));
+            int viewLastColumnRight = pnlDraw.ClientSize.Width;// Math.Min(columnsCount * ColumnWidth - ViewTopLeftOffset.X + Column0Width, pnlDraw.ClientSize.Width);
+            g.Clip = new Region(CellRect(-1, -1, columnsCount + 1, RowsCount + 1).SetWidthMoveRight(pnlDraw.ClientSize.Width));
             for (int iRow = ViewTopRowNr; iRow < ViewBotRowNr; iRow++)
             {
                 // Select row back color
@@ -612,7 +620,8 @@ namespace GroundControl
                     color = Utils.Gray(60);
 
                 // Draw rect 
-                g.FillRectangle(new SolidBrush(color), CellRect(-1, iRow, columnsCount + 1, 1).Expand(bottom: 1));
+                var rowBGRect = CellRect(-1, iRow, columnsCount + 1, 1).SetWidthMoveRight(pnlDraw.ClientSize.Width).Expand(bottom: 1);
+                g.FillRectangle(new SolidBrush(color), rowBGRect);
 
                 // Background of "Cursor" cell
                 if (iRow == Cursor.Y)
@@ -633,7 +642,7 @@ namespace GroundControl
             format = format.Replace("time", "2");
 
             // Draw rows index labels 
-            g.Clip = new Region(CellRect(-1, -1, 1, RowsCount).Expand(top: -Row0Height));
+            g.Clip = new Region(CellRect(-1, -1, 1, RowsCount));
             for (int iRow = ViewTopRowNr; iRow < ViewBotRowNr; iRow++)
             {
                 // Select row back color
@@ -654,7 +663,7 @@ namespace GroundControl
                 // Draw key count
                 if (KeysInRow[iRow].Count > 0)
                 {
-                    var keyCountRect = CellRect(0, iRow, 0, 1).Expand(left: 20).Expand(0, -3, -3, -3);
+                    var keyCountRect = CellRect(-1, iRow, 1, 1).SetWidthMoveLeft(20).Expand(0, -3, -3, -3);
                     g.FillRectangle(Brushes.LightGray, keyCountRect);
                     g.DrawString(KeysInRow[iRow].Count.ToString(), keysTipFont, Brushes.Black, keyCountRect.Pan(top:1), sfCenter);
                 }
@@ -669,13 +678,12 @@ namespace GroundControl
                 g.DrawString(bookmark.Number.ToString(), bookmarkFont, Brushes.White, bookmarkRect.Pan(bottom: 1, right: 0), sfCenter);
             }
 
-
             // Draw column0 vertical seperators
             g.ResetClip();
             g.DrawLine(new Pen(Utils.Gray(180)), CellRect(-1, -1, 0, RowsCount + 1).Pan(right: Column0Width - 1));
 
             // Draw column headers 
-            g.Clip = new Region(CellRect(-1, -1, columnsCount, RowsCount + 1).Expand(left: -Column0Width));
+            g.Clip = new Region(CellRect(-1, -1, columnsCount + 1, RowsCount + 1));
             for (int iColumn = 0; iColumn < columnsCount; iColumn++)
             {
                 // Skip invisible columns
@@ -1551,6 +1559,14 @@ namespace GroundControl
 
         #region Menu Events
 
+        private void MainForm_FormClosing(object sender, FormClosingEventArgs e)
+        {
+            // Ask user what to do if application closes with an unsaved project
+            if (Modified)
+                if (MessageBox.Show(this, "Are you sure you want to close aplication without saving?", "Unsaved Project", MessageBoxButtons.YesNo, MessageBoxIcon.Exclamation) != DialogResult.Yes)
+                    e.Cancel = true;                     
+        }
+
         private void tmrUpdateUI_Tick(object sender, EventArgs e)
         {
             // Refresh trackManager option
@@ -1567,12 +1583,20 @@ namespace GroundControl
 
         private void newToolStripMenuItem_Click(object sender, EventArgs e)
         {
+            // Ask "are you sure"
+            if (Modified)
+                if (MessageBox.Show(this, "Unsaving current project detected.\nAre you sure you want to start a new project?", "Unsaved Project", MessageBoxButtons.YesNo, MessageBoxIcon.Exclamation) != DialogResult.Yes)
+                    return;
+
             ProjectFilename = "";
             Project = new RocketProject();
             Tracks = Project.Tracks;
             UndoSnaps = new List<Stream>();
             UndoSnapIndex = -1;
             Modified = false;
+
+            // Update app title
+            UpdateApplicationTitle();
 
             // Clean key maps
             RebuildKeyMaps();

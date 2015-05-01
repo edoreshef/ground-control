@@ -112,10 +112,21 @@ namespace System.Windows.Forms
             return new Rectangle(rect.X - left + right, rect.Y - top + bottom, rect.Width, rect.Height);
         }
 
+        public static Rectangle SetWidthMoveLeft(this Rectangle rect, int newWidth)
+        {
+            return new Rectangle(rect.Right - newWidth, rect.Top, newWidth, rect.Height);
+        }
+
+        public static Rectangle SetWidthMoveRight(this Rectangle rect, int newWidth)
+        {
+            return new Rectangle(rect.Left, rect.Top, newWidth, rect.Height);
+        }
+
         public static void DrawLine(this Graphics g, Pen pen, Rectangle rect)
         {
             g.DrawLine(pen, rect.Left, rect.Top, rect.Right, rect.Bottom);
         }
+
     }
 
     public static class ListExt
