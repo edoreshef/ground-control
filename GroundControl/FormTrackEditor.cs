@@ -21,6 +21,8 @@ namespace GroundControl
         public FormTrackEditor()
         {
             InitializeComponent();
+
+            new MagnetWinForms.MagnetWinForms(this);
         }
 
         private void listTracks_DragOver(object sender, DragEventArgs e)

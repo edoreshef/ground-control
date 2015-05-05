@@ -50,6 +50,9 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="..\..\magnet-winforms\MagnetWinForms.cs">
+      <Link>MagnetWinForms.cs</Link>
+    </Compile>
     <Compile Include="DataTypes.cs" />
     <Compile Include="FormSettings.cs">
       <SubType>Form</SubType>

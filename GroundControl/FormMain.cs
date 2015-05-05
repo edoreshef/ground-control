@@ -76,6 +76,8 @@ namespace GroundControl
             // Make sure handle is created
             CreateHandle();
 
+            new MagnetWinForms.MagnetWinForms(this);
+
             // Hookup to UI input events
             pnlDraw.KeyDown += pnlDraw_KeyDown;
             pnlDraw.KeyPress += pnlDraw_KeyPress;
@@ -102,7 +104,7 @@ namespace GroundControl
             // Create Track editor form
             TrackEditor = new FormTrackEditor();
             TrackEditor.StartPosition = FormStartPosition.Manual;
-            TrackEditor.SetBounds(Bounds.Right + 10, Bounds.Top, 250, Bounds.Height);
+            TrackEditor.SetBounds(Bounds.Right, Bounds.Top, 250, Bounds.Height);
             TrackEditor.BeforeChange += TrackEditor_BeforeChange;
             TrackEditor.TracksChanged += TrackEditor_TracksChanged;
             TrackEditor.TracksRemoved += TrackEditor_TracksRemoved;
@@ -1643,6 +1645,14 @@ namespace GroundControl
         private void copyToolStripMenuItem_Click(object sender, EventArgs e)
         {
             CopyToClipboard();
+        }
+
+        private void cutToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            CopyToClipboard();
+
+            // Simulate delete key
+            pnlDraw_KeyDown(this, new KeyEventArgs(Keys.Delete));
         }
 
         private void pasteToolStripMenuItem_Click(object sender, EventArgs e)
