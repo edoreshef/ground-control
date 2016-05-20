@@ -2,16 +2,12 @@
 using NAudio.Wave;
 using System;
 using System.Collections.Generic;
-using System.ComponentModel;
-using System.Data;
 using System.Drawing;
-using System.Drawing.Drawing2D;
 using System.Drawing.Imaging;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text;
-using System.Threading.Tasks;
 using System.Windows.Forms;
 using System.Xml.Serialization;
 using System.Globalization;
@@ -26,47 +22,47 @@ namespace GroundControl
         const int RowHeight = 15;
 
         // Document related
-        private string ProjectFilename;
-        private bool Modified;
-        private RocketProject Project;
-        private List<TrackInfo> Tracks;
-        private List<TrackInfo> ColumnToTrack;
-        private int RowsCount;
-        private Dictionary<KeyInfo, TrackInfo> KeyToTrack;
-        private List<KeyInfo>[] KeysInRow = new List<KeyInfo>[0];
+        private string m_ProjectFilename;
+        private bool m_Modified;
+        private RocketProject m_Project;
+        private List<TrackInfo> m_Tracks;
+        private List<TrackInfo> m_ColumnToTrack;
+        private int m_RowsCount;
+        private Dictionary<KeyInfo, TrackInfo> m_KeyToTrack;
+        private List<KeyInfo>[] m_KeysInRow = new List<KeyInfo>[0];
 
         // Current view related members
-        private Point ViewTopLeftOffset;
-        private int ViewTopRowNr;
-        private int ViewBotRowNr;
+        private Point m_ViewTopLeftOffset;
+        private int m_ViewTopRowNr;
+        private int m_ViewBotRowNr;
 
         // Audio view related
-        private Bitmap     AudioTrack;
-        private float[]    AudioBuffer;
-        private WaveFormat AudioWaveFormat;
+        private Bitmap     m_AudioTrack;
+        private float[]    m_AudioBuffer;
+        private WaveFormat m_AudioWaveFormat;
 
         // Selection related members
-        private Rectangle Selection = Rectangle.Empty;
-        private Point SelectionStart = Point.Empty;
-        private Point Cursor = new Point(0, 0);
-        private bool MousePressed;
+        private Rectangle m_Selection = Rectangle.Empty;
+        private Point m_SelectionStart = Point.Empty;
+        private Point m_Cursor = new Point(0, 0);
+        private bool m_MousePressed;
 
         // Editing related
-        private Point EditInKey = new Point(-1, -1);
+        private Point m_EditInKey = new Point(-1, -1);
 
         // Rocket communication
-        private RocketServer server;
+        private RocketServer m_Server;
 
         // Undo/redo related
-        private bool         UndoInProcess = false;
-        private int          UndoSnapIndex = -1;
-        private List<Stream> UndoSnaps = new List<Stream>();
+        private bool         m_UndoInProcess;
+        private int          m_UndoSnapIndex = -1;
+        private List<Stream> m_UndoSnaps = new List<Stream>();
 
         // Mru 
-        private MruStripMenu mruMenu;
+        private MruStripMenu m_MruMenu;
 
         // Track manager
-        private FormTrackEditor TrackEditor;
+        private FormTrackEditor m_TrackEditor;
 
         private enum Direction { Up, Down, Left, Right };
 
@@ -90,26 +86,26 @@ namespace GroundControl
             newToolStripMenuItem_Click(null, null);
 
             // Setup Rocket server
-            server = new RocketServer();
-            server.GetTrack += server_GetTrack;
-            server.RowSet += server_RowSet;
-            server.ClientConnected += server_ClientConnected;
+            m_Server = new RocketServer();
+            m_Server.GetTrack += server_GetTrack;
+            m_Server.RowSet += server_RowSet;
+            m_Server.ClientConnected += server_ClientConnected;
 
             // Force resize to reposition all controls
             MainForm_Resize(null, null);
 
             // Load MRU options
-            mruMenu = new MruStripMenuInline(fileToolStripMenuItem, recentToolStripMenuItem, OnMruFile, @"SOFTWARE\Rocket\Rocket\MRU", 16);
-            mruMenu.LoadFromRegistry();
+            m_MruMenu = new MruStripMenuInline(fileToolStripMenuItem, recentToolStripMenuItem, OnMruFile, @"SOFTWARE\Rocket\Rocket\MRU", 16);
+            m_MruMenu.LoadFromRegistry();
 
             // Create Track editor form
-            TrackEditor = new FormTrackEditor();
-            TrackEditor.StartPosition = FormStartPosition.Manual;
-            TrackEditor.SetBounds(Bounds.Right, Bounds.Top, 250, Bounds.Height);
-            TrackEditor.BeforeChange += TrackEditor_BeforeChange;
-            TrackEditor.TracksChanged += TrackEditor_TracksChanged;
-            TrackEditor.TracksRemoved += TrackEditor_TracksRemoved;
-            TrackEditor.Show(this);
+            m_TrackEditor = new FormTrackEditor();
+            m_TrackEditor.StartPosition = FormStartPosition.Manual;
+            m_TrackEditor.SetBounds(Bounds.Right, Bounds.Top, 250, Bounds.Height);
+            m_TrackEditor.BeforeChange += TrackEditor_BeforeChange;
+            m_TrackEditor.TracksChanged += TrackEditor_TracksChanged;
+            m_TrackEditor.TracksRemoved += TrackEditor_TracksRemoved;
+            m_TrackEditor.Show(this);
         }
 
         #region Resizing related
@@ -155,12 +151,12 @@ namespace GroundControl
             MoveCursor(ViewXYtoCell(e.Location));
 
             // Remember that mouse was pressed
-            MousePressed = true;
+            m_MousePressed = true;
         }
 
         private void pnlDraw_MouseMove(object sender, MouseEventArgs e)
         {
-            if (MousePressed)
+            if (m_MousePressed)
             {
                 MoveCursor(ViewXYtoCell(e.Location));
             }
@@ -168,19 +164,19 @@ namespace GroundControl
 
         private void pnlDraw_MouseUp(object sender, MouseEventArgs e)
         {
-            MousePressed = false;
+            m_MousePressed = false;
         }
 
         private void pnlDraw_MouseWheel(object sender, MouseEventArgs e)
         {
             // Select key type
-            var KeyType = (e.Delta > 0) ? Keys.Up : Keys.Down;
+            var keyType = (e.Delta > 0) ? Keys.Up : Keys.Down;
             if (ModifierKeys.HasFlag(Keys.Control))
-                KeyType = (e.Delta > 0) ? Keys.Left : Keys.Right;
+                keyType = (e.Delta > 0) ? Keys.Left : Keys.Right;
 
             // Simulate presses
             for (int i = Math.Abs(e.Delta / 120); i > 0; i--)
-                pnlDraw_KeyDown(this, new KeyEventArgs(KeyType));
+                pnlDraw_KeyDown(this, new KeyEventArgs(keyType));
         }
 
         private void pnlDraw_KeyDown(object sender, KeyEventArgs e)
@@ -202,7 +198,7 @@ namespace GroundControl
                     key.Value += step;
 
                     // Update client
-                    server.SetKey(KeyToTrack[key].Name, key.Row, key.Value, key.Interpolation);
+                    m_Server.SetKey(m_KeyToTrack[key].Name, key.Row, key.Value, key.Interpolation);
                 }
 
                 // Redraw
@@ -219,18 +215,18 @@ namespace GroundControl
             if ((e.Modifiers & Keys.Alt) == 0)
             {
                 // Update cursor position
-                var newPos = Cursor;
+                var newPos = m_Cursor;
 
                 if ((e.Modifiers & Keys.Control) == 0)
                 {
                     if (e.KeyCode == Keys.Up)       newPos.Y--;
                     if (e.KeyCode == Keys.Down)     newPos.Y++;
-                    if (e.KeyCode == Keys.PageUp)   newPos.Y -= (ViewBotRowNr - ViewTopRowNr - 1);
-                    if (e.KeyCode == Keys.PageDown) newPos.Y += (ViewBotRowNr - ViewTopRowNr - 1);
+                    if (e.KeyCode == Keys.PageUp)   newPos.Y -= (m_ViewBotRowNr - m_ViewTopRowNr - 1);
+                    if (e.KeyCode == Keys.PageDown) newPos.Y += (m_ViewBotRowNr - m_ViewTopRowNr - 1);
                     if (e.KeyCode == Keys.Left)     newPos.X--;
                     if (e.KeyCode == Keys.Right)    newPos.X++;
                     if (e.KeyCode == Keys.Home)     newPos.Y = 0;
-                    if (e.KeyCode == Keys.End)      newPos.Y = RowsCount - 1;
+                    if (e.KeyCode == Keys.End)      newPos.Y = m_RowsCount - 1;
                     if (e.KeyCode == Keys.Tab)
                         if ((e.Modifiers & Keys.Shift) == 0) 
                             newPos.X++;
@@ -296,22 +292,22 @@ namespace GroundControl
             if (char.IsDigit(e.KeyChar) || (e.KeyChar == '.') || (e.KeyChar == '-') || (e.KeyChar == '\r'))
             {
                 // Should we start editing?
-                if (EditInKey == new Point(-1, -1))
+                if (m_EditInKey == new Point(-1, -1))
                 {
                     // Ignore if we're outside of valid range
-                    if (Cursor.X >= ColumnToTrack.Count)
+                    if (m_Cursor.X >= m_ColumnToTrack.Count)
                         return;
                     
                     // Setup editing
-                    textEdit.Bounds = CellRect(Cursor.X, Cursor.Y);
+                    textEdit.Bounds = CellRect(m_Cursor.X, m_Cursor.Y);
                     textEdit.Font = new Font("Courier New", 10, FontStyle.Bold);
 
                     // Set start text
                     if (e.KeyChar == '\r')
                     {
                         // Get current value
-                        var track = ColumnToTrack[Cursor.X];
-                        textEdit.Text = track.GetValue(Cursor.Y).ToString("0.00");
+                        var track = m_ColumnToTrack[m_Cursor.X];
+                        textEdit.Text = track.GetValue(m_Cursor.Y).ToString("0.00");
                     }
                     else
                     {
@@ -320,7 +316,7 @@ namespace GroundControl
                     }
 
                     // Show edit
-                    EditInKey = Cursor;
+                    m_EditInKey = m_Cursor;
                     textEdit.Show();
                     textEdit.Focus();
 
@@ -332,10 +328,10 @@ namespace GroundControl
             // Play/Stop
             if (e.KeyChar == ' ')
             {
-                if (server.PlayMode)
-                    server.Pause();
+                if (m_Server.PlayMode)
+                    m_Server.Pause();
                 else
-                    server.Play();
+                    m_Server.Play();
             }
 
             // Is it interpolation change?
@@ -356,7 +352,7 @@ namespace GroundControl
                     key.Interpolation = currentInter;
 
                     // Update client
-                    server.SetKey(KeyToTrack[key].Name, key.Row, key.Value, key.Interpolation);
+                    m_Server.SetKey(m_KeyToTrack[key].Name, key.Row, key.Value, key.Interpolation);
                 }
 
                 pnlDraw.Invalidate();
@@ -370,11 +366,12 @@ namespace GroundControl
                 e.Handled = true;
 
             // only allow one decimal point
-            if ((e.KeyChar == '.') && ((sender as TextBox).Text.IndexOf('.') > -1))
+            var textbox = (TextBox)sender;
+            if ((e.KeyChar == '.') && (textbox.Text.IndexOf('.') > -1))
                 e.Handled = true;
 
             // only allow one decimal point
-            if ((e.KeyChar == '-') && (((sender as TextBox).SelectionStart != 0) || (sender as TextBox).Text.IndexOf('-') > -1))
+            if ((e.KeyChar == '-') && ((textbox.SelectionStart != 0) || (textbox.Text.IndexOf('-') > -1)))
                 e.Handled = true;
 
             // Enter pressed?
@@ -425,12 +422,12 @@ namespace GroundControl
                 SaveUndoSnapshot();
 
                 // Get (or create) a key
-                var track = ColumnToTrack[EditInKey.X];
-                var key = GetKeyFromCell(EditInKey.X, EditInKey.Y);
+                var track = m_ColumnToTrack[m_EditInKey.X];
+                var key = GetKeyFromCell(m_EditInKey.X, m_EditInKey.Y);
                 if (key == null)
                 {
                     // Add key to track
-                    key = new KeyInfo() { Row = EditInKey.Y };
+                    key = new KeyInfo() { Row = m_EditInKey.Y };
                     AddKeyToTrack(key, track);
                 }
 
@@ -438,11 +435,11 @@ namespace GroundControl
                 key.Value = float.Parse(textEdit.Text, CultureInfo.InvariantCulture);
 
                 // Update client
-                server.SetKey(track.Name, key.Row, key.Value, key.Interpolation);
+                m_Server.SetKey(track.Name, key.Row, key.Value, key.Interpolation);
             }
 
             // Terminate editing
-            EditInKey = new Point(-1, -1);
+            m_EditInKey = new Point(-1, -1);
             textEdit.Hide();
 
             // Redraw screen
@@ -452,65 +449,65 @@ namespace GroundControl
         private void MoveCursor(Point newPosition, bool remoteSetRow = false)
         {
             // Check if cursor has moved
-            if (newPosition.Equals(Cursor))
+            if (newPosition.Equals(m_Cursor))
                 return;
 
             // Make sure cursor is in range
-            var PrevCursor = Cursor;
-            Cursor.X = Math.Max(0, Math.Min(newPosition.X, ColumnToTrack.Count - 1));
-            Cursor.Y = Math.Max(0, Math.Min(newPosition.Y, RowsCount - 1));
+            var prevCursor = m_Cursor;
+            m_Cursor.X = Math.Max(0, Math.Min(newPosition.X, m_ColumnToTrack.Count - 1));
+            m_Cursor.Y = Math.Max(0, Math.Min(newPosition.Y, m_RowsCount - 1));
 
             // Is selection mod is on?
-            var selectionActive = ModifierKeys.HasFlag(Keys.Shift) || (MousePressed);
+            var selectionActive = ModifierKeys.HasFlag(Keys.Shift) || (m_MousePressed);
 
             // Handle selection selection - Moved without an active selection? Cancel old selection
             if (!selectionActive)
             {
                 // Cancel selection
-                Selection = Rectangle.Empty;
+                m_Selection = Rectangle.Empty;
             }
             else
             {
                 // Selection just started?
-                if (Selection == Rectangle.Empty)
-                    SelectionStart = PrevCursor;
+                if (m_Selection == Rectangle.Empty)
+                    m_SelectionStart = prevCursor;
 
                 // Update selection
-                Selection = new Rectangle(Math.Min(SelectionStart.X, Cursor.X),
-                                            Math.Min(SelectionStart.Y, Cursor.Y),
-                                            Math.Abs(SelectionStart.X - Cursor.X) + 1,
-                                            Math.Abs(SelectionStart.Y - Cursor.Y) + 1);
+                m_Selection = new Rectangle(Math.Min(m_SelectionStart.X, m_Cursor.X),
+                                            Math.Min(m_SelectionStart.Y, m_Cursor.Y),
+                                            Math.Abs(m_SelectionStart.X - m_Cursor.X) + 1,
+                                            Math.Abs(m_SelectionStart.Y - m_Cursor.Y) + 1);
             }
 
             // Update client (only if cursor change was caused by UI
             if (!remoteSetRow)
-                server.SetRow(Cursor.Y);
+                m_Server.SetRow(m_Cursor.Y);
 
             // During playback, make sure cursor does not go below mid screen
-            var maxViewHeight = server.PlayMode ? pnlDraw.ClientSize.Height / 2 : pnlDraw.ClientSize.Height;
+            var maxViewHeight = m_Server.PlayMode ? pnlDraw.ClientSize.Height / 2 : pnlDraw.ClientSize.Height;
 
             // Make sure cursor is in view
-            if (RowToViewY(Cursor.Y) < Row0Height)
-                vScrollBar1.Value = Cursor.Y * RowHeight;
-            if (RowToViewY(Cursor.Y + 1) > maxViewHeight)
-                vScrollBar1.Value = Math.Max(0, (Cursor.Y + 1) * RowHeight + Row0Height - maxViewHeight);
+            if (RowToViewY(m_Cursor.Y) < Row0Height)
+                vScrollBar1.Value = m_Cursor.Y * RowHeight;
+            if (RowToViewY(m_Cursor.Y + 1) > maxViewHeight)
+                vScrollBar1.Value = Math.Max(0, (m_Cursor.Y + 1) * RowHeight + Row0Height - maxViewHeight);
 
             // Make sure cursor is in view
-            if (ColumnToViewX(Cursor.X) < Column0Width)
-                hScrollBar1.Value = Cursor.X * ColumnWidth;
-            if (ColumnToViewX(Cursor.X + 1) > pnlDraw.ClientSize.Width)
-                hScrollBar1.Value = Math.Max(0, (Cursor.X + 1) * ColumnWidth + Column0Width - pnlDraw.ClientSize.Width);
+            if (ColumnToViewX(m_Cursor.X) < Column0Width)
+                hScrollBar1.Value = m_Cursor.X * ColumnWidth;
+            if (ColumnToViewX(m_Cursor.X + 1) > pnlDraw.ClientSize.Width)
+                hScrollBar1.Value = Math.Max(0, (m_Cursor.X + 1) * ColumnWidth + Column0Width - pnlDraw.ClientSize.Width);
 
             // Update status bar
-            toolStripCurrentRow.Text = "Row: " + Cursor.Y;
-            if (Cursor.X < ColumnToTrack.Count)
+            toolStripCurrentRow.Text = "Row: " + m_Cursor.Y;
+            if (m_Cursor.X < m_ColumnToTrack.Count)
             {
                 // Display current track/row value
-                var track = ColumnToTrack[Cursor.X];
-                toolStripCurrentValue.Text = track.GetValue(Cursor.Y).ToString("0.00");
+                var track = m_ColumnToTrack[m_Cursor.X];
+                toolStripCurrentValue.Text = track.GetValue(m_Cursor.Y).ToString("0.00");
 
                 // Display interpolation
-                var keyIndex = track.FindKeyByRow(Cursor.Y, true);
+                var keyIndex = track.FindKeyByRow(m_Cursor.Y, true);
                 if (keyIndex >= 0)
                     toolStripInterpolation.Text = track.Keys[keyIndex].Interpolation.ToString();
                 else
@@ -534,18 +531,18 @@ namespace GroundControl
         private void server_RowSet(object sender, int rowNr)
         {
             // Move cursor
-            MoveCursor(new Point(Cursor.X, rowNr), true);
+            MoveCursor(new Point(m_Cursor.X, rowNr), true);
         }
 
         private void server_GetTrack(object sender, string trackName)
         {
             // Find track
-            var track = Tracks.FirstOrDefault(t => t.Name == trackName);
+            var track = m_Tracks.FirstOrDefault(t => t.Name == trackName);
 
             // Create new track if doesn't exists
             if (track == null)
             {
-                Tracks.Add(track = new TrackInfo() { Name = trackName });
+                m_Tracks.Add(track = new TrackInfo() { Name = trackName });
 
                 RebuildKeyMaps();
 
@@ -554,13 +551,13 @@ namespace GroundControl
 
             // Send all keys
             foreach (var key in track.Keys)
-                server.SetKey(trackName, key.Row, key.Value, key.Interpolation);
+                m_Server.SetKey(trackName, key.Row, key.Value, key.Interpolation);
         }
 
         private void server_ClientConnected(object sender, EventArgs e)
         {
             // Client just got connected, send him the current position
-            server.SetRow(Cursor.Y);
+            m_Server.SetRow(m_Cursor.Y);
         }
 
         #endregion
@@ -579,7 +576,7 @@ namespace GroundControl
             var sfFar = new StringFormat() { Alignment = StringAlignment.Far, LineAlignment = StringAlignment.Center };
             var sfCenter = new StringFormat() { Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Center };
 
-            var InterColors = new Pen[] 
+            var interColors = new[] 
             {
                 null, 
                 new Pen(Color.Red, 3),
@@ -588,9 +585,9 @@ namespace GroundControl
             };
 
             // Compute grid size
-            var columnsCount = ColumnToTrack.Count;
+            var columnsCount = m_ColumnToTrack.Count;
             var totalWidth = Column0Width + columnsCount * ColumnWidth;
-            var totalHeight = RowsCount * RowHeight;
+            var totalHeight = m_RowsCount * RowHeight;
 
             // Update scroll bars
             vScrollBar1.LargeChange = pnlDraw.ClientSize.Height;
@@ -602,16 +599,19 @@ namespace GroundControl
             if (hScrollBar1.LargeChange > hScrollBar1.Maximum) hScrollBar1.Value = 0;
 
             // Get screen 0,0 offset
-            ViewTopLeftOffset = new Point(hScrollBar1.Value, vScrollBar1.Value);
+            m_ViewTopLeftOffset = new Point(hScrollBar1.Value, vScrollBar1.Value);
 
-            // Build view rows info
-            ViewTopRowNr = (ViewTopLeftOffset.Y) / RowHeight;
-            ViewBotRowNr = (ViewTopLeftOffset.Y + pnlDraw.ClientSize.Height - Row0Height) / RowHeight;
+            // Compute visible top/bottom rows
+            m_ViewTopRowNr = (m_ViewTopLeftOffset.Y) / RowHeight;
+            m_ViewBotRowNr = (m_ViewTopLeftOffset.Y + pnlDraw.ClientSize.Height - Row0Height) / RowHeight;
+
+            // Trim visible rows by total row count
+            m_ViewTopRowNr = Math.Min(m_ViewTopRowNr, m_RowsCount);
+            m_ViewBotRowNr = Math.Min(m_ViewBotRowNr, m_RowsCount);
 
             // Draw horizontal lines
-            int viewLastColumnRight = pnlDraw.ClientSize.Width;// Math.Min(columnsCount * ColumnWidth - ViewTopLeftOffset.X + Column0Width, pnlDraw.ClientSize.Width);
-            g.Clip = new Region(CellRect(-1, -1, columnsCount + 1, RowsCount + 1).SetWidthMoveRight(pnlDraw.ClientSize.Width));
-            for (int iRow = ViewTopRowNr; iRow < ViewBotRowNr; iRow++)
+            g.Clip = new Region(CellRect(-1, -1, columnsCount + 1, m_RowsCount + 1).SetWidthMoveRight(pnlDraw.ClientSize.Width));
+            for (var iRow = m_ViewTopRowNr; iRow < m_ViewBotRowNr; iRow++)
             {
                 // Select row back color
                 var color = (iRow % 2) == 0 ? Utils.Gray(10) : Utils.Gray(0);
@@ -619,40 +619,38 @@ namespace GroundControl
                     color = Utils.Gray(25);
 
                 // Is it the "selected" row?
-                if (iRow == Cursor.Y)
+                if (iRow == m_Cursor.Y)
                     color = Utils.Gray(60);
 
                 // Draw rect 
                 var rowBGRect = CellRect(-1, iRow, columnsCount + 1, 1).SetWidthMoveRight(pnlDraw.ClientSize.Width).Expand(bottom: 1);
                 g.FillRectangle(new SolidBrush(color), rowBGRect);
 
-                // Background of "Cursor" cell
-                if (iRow == Cursor.Y)
-                    g.FillRectangle(new SolidBrush(Utils.RGB(0xFFFFFF)), CellRect(Cursor.X, iRow).Expand(bottom: 1));
+                // Background of "m_Cursor" cell
+                if (iRow == m_Cursor.Y)
+                    g.FillRectangle(new SolidBrush(Utils.RGB(0xFFFFFF)), CellRect(m_Cursor.X, iRow).Expand(bottom: 1));
             }
 
             // Draw column0 header 
             var titleRect = CellRect(-1, -1);
-            //var titleBrush = new LinearGradientBrush(titleRect, Utils.RGB(0x0963BD), Utils.RGB(0x05294D), LinearGradientMode.Vertical);
             var titleBrush = new SolidBrush(Utils.RGB(0x00));
-            var titlePen = new Pen(Color.FromArgb(255, 0, 0, 0));
             g.FillRectangle(titleBrush, titleRect);
 
             // Build formatting string
-            var format = Project.TimeFormat;
+            var format = m_Project.TimeFormat;
             format = format.Replace("row", "0");
             format = format.Replace("seconds", "1");
             format = format.Replace("time", "2");
 
             // Draw rows index labels 
-            g.Clip = new Region(CellRect(-1, -1, 1, RowsCount));
-            for (int iRow = ViewTopRowNr; iRow < ViewBotRowNr; iRow++)
+            g.Clip = new Region(CellRect(-1, -1, 1, m_RowsCount));
+            for (int iRow = m_ViewTopRowNr; iRow < m_ViewBotRowNr; iRow++)
             {
                 // Select row back color
                 var color = (iRow % 8 == 0) ? Utils.Gray(200) : Utils.Gray(150);
 
                 // Draw row number
-                var rowsPerSecond = Project.BPM * Project.RowsPerBeat / 60.0;
+                var rowsPerSecond = m_Project.BPM * m_Project.RowsPerBeat / 60.0;
                 var seconds = iRow / rowsPerSecond;
                 var time = TimeSpan.FromSeconds(seconds);
                 try
@@ -661,19 +659,20 @@ namespace GroundControl
                 }
                 catch (Exception)
                 {
+                    // ignored
                 }
 
                 // Draw key count
-                if (KeysInRow[iRow].Count > 0)
+                if (m_KeysInRow[iRow].Count > 0)
                 {
-                    var keyCountRect = CellRect(-1, iRow, 1, 1).SetWidthMoveLeft(20).Expand(0, -3, -3, -3);
+                    var keyCountRect = CellRect(-1, iRow).SetWidthMoveLeft(20).Expand(0, -3, -3, -3);
                     g.FillRectangle(Brushes.LightGray, keyCountRect);
-                    g.DrawString(KeysInRow[iRow].Count.ToString(), keysTipFont, Brushes.Black, keyCountRect.Pan(top:1), sfCenter);
+                    g.DrawString(m_KeysInRow[iRow].Count.ToString(), keysTipFont, Brushes.Black, keyCountRect.Pan(top:1), sfCenter);
                 }
             }
 
             // Draw bookmarks
-            foreach (var bookmark in Project.Bookmarks)
+            foreach (var bookmark in m_Project.Bookmarks)
             {
                 var bookmarkRect = CellRect(-1, bookmark.Row, 0, 1).Expand(right: RowHeight).Expand(right: -1, bottom: -1).Pan(right: 2);
                 g.FillEllipse(Brushes.DarkRed, bookmarkRect);
@@ -683,19 +682,19 @@ namespace GroundControl
 
             // Draw column0 vertical seperators
             g.ResetClip();
-            g.DrawLine(new Pen(Utils.Gray(180)), CellRect(-1, -1, 0, RowsCount + 1).Pan(right: Column0Width - 1));
+            g.DrawLine(new Pen(Utils.Gray(180)), CellRect(-1, -1, 0, m_RowsCount + 1).Pan(right: Column0Width - 1));
 
             // Draw column headers 
-            g.Clip = new Region(CellRect(-1, -1, columnsCount + 1, RowsCount + 1));
+            g.Clip = new Region(CellRect(-1, -1, columnsCount + 1, m_RowsCount + 1));
             for (int iColumn = 0; iColumn < columnsCount; iColumn++)
             {
                 // Skip invisible columns
-                var column = ColumnToTrack[iColumn];
+                var column = m_ColumnToTrack[iColumn];
                 if ((ColumnToViewX(iColumn + 1) < 0) || (ColumnToViewX(iColumn) > pnlDraw.ClientSize.Width))
                     continue;
 
                 // Draw vertical seperators
-                g.DrawLine(new Pen(Utils.ARGB(0x20ffffff)), CellRect(iColumn + 1, -1, 0, RowsCount));
+                g.DrawLine(new Pen(Utils.ARGB(0x20ffffff)), CellRect(iColumn + 1, -1, 0, m_RowsCount));
 
                 // Draw column header 
                 titleRect = CellRect(iColumn, -1).Expand(left: -1);
@@ -707,17 +706,17 @@ namespace GroundControl
 
             // Draw last vertical seperator
             g.ResetClip();
-            g.DrawLine(new Pen(Utils.ARGB(0x20ffffff)), CellRect(columnsCount, -1, 0, RowsCount));
+            g.DrawLine(new Pen(Utils.ARGB(0x20ffffff)), CellRect(columnsCount, -1, 0, m_RowsCount));
 
             // Draw header horizontal seperator
             g.DrawLine(new Pen(Utils.Gray(180)), new Rectangle(0, Row0Height, pnlDraw.ClientSize.Width, 0));
 
             // Draw column keys
-            g.Clip = new Region(CellRect(-1, -1, columnsCount + 1, RowsCount).Expand(top: -Row0Height, left: -Column0Width));
+            g.Clip = new Region(CellRect(-1, -1, columnsCount + 1, m_RowsCount).Expand(top: -Row0Height, left: -Column0Width));
             for (int iColumn = 0; iColumn < columnsCount; iColumn++)
             {
                 // Skip invisible columns
-                var column = ColumnToTrack[iColumn];
+                var column = m_ColumnToTrack[iColumn];
                 if ((ColumnToViewX(iColumn + 1) < 0) || (ColumnToViewX(iColumn) > pnlDraw.ClientSize.Width))
                     continue;
 
@@ -727,7 +726,7 @@ namespace GroundControl
                     var key = column.Keys[iKey];
 
                     // Select color
-                    var color = (key.Row == Cursor.Y && iColumn == Cursor.X) ? Brushes.Black : Brushes.White;
+                    var color = (key.Row == m_Cursor.Y && iColumn == m_Cursor.X) ? Brushes.Black : Brushes.White;
 
                     // Draw value
                     g.DrawString(key.Value.ToString("0.00"), rowFont, color, CellRect(iColumn, key.Row).Expand(right: -4), sfFar);
@@ -736,10 +735,10 @@ namespace GroundControl
                     if (key.Interpolation != 0)
                     {
                         // find next key row
-                        var nextKeyRow = (iKey == column.Keys.Count - 1) ? RowsCount : column.Keys[iKey + 1].Row;
+                        var nextKeyRow = (iKey == column.Keys.Count - 1) ? m_RowsCount : column.Keys[iKey + 1].Row;
 
                         // var compute line rect
-                        g.DrawLine(InterColors[key.Interpolation],
+                        g.DrawLine(interColors[key.Interpolation],
                             CellRect(iColumn + 1, key.Row, 0, nextKeyRow - key.Row)
                             .Pan(left: 2)
                             .Expand(top: -2, bottom: -1));
@@ -748,29 +747,29 @@ namespace GroundControl
             }
 
             // Draw selection
-            if (Selection != Rectangle.Empty)
+            if (m_Selection != Rectangle.Empty)
             {
-                var selectionRect = CellRect(Selection.X, Selection.Y, Selection.Width, Selection.Height);
+                var selectionRect = CellRect(m_Selection.X, m_Selection.Y, m_Selection.Width, m_Selection.Height);
                 g.FillRectangle(new SolidBrush(Color.FromArgb(70, 148, 198, 255)), selectionRect);
             }
         }
 
         private void pnlAudioView_Paint(object sender, PaintEventArgs e)
         {
-            if (AudioTrack != null)
+            if (m_AudioTrack != null)
             {
                 // Compute dest rect
                 var destRect = pnlAudioView.ClientRectangle.Expand(top: -Row0Height);
 
                 // Draw image
-                e.Graphics.DrawImage(AudioTrack,
+                e.Graphics.DrawImage(m_AudioTrack,
                     destRect,
                     new Rectangle(0, vScrollBar1.Value, destRect.Width, destRect.Height),
                     GraphicsUnit.Pixel);
             }
 
             // Draw cursor
-            var cursorViewY = RowToViewY(Cursor.Y) + RowHeight / 2;
+            var cursorViewY = RowToViewY(m_Cursor.Y) + RowHeight / 2;
             e.Graphics.DrawLine(Pens.Yellow, 0, cursorViewY, pnlAudioView.ClientSize.Width, cursorViewY);
         }
 
@@ -780,22 +779,22 @@ namespace GroundControl
 
         private int RowToViewY(int row)
         {
-            return row * RowHeight + Row0Height - ViewTopLeftOffset.Y;
+            return row * RowHeight + Row0Height - m_ViewTopLeftOffset.Y;
         }
 
         private int ViewYToRow(int viewY)
         {
-            return (viewY - Row0Height + ViewTopLeftOffset.Y) / RowHeight;
+            return (viewY - Row0Height + m_ViewTopLeftOffset.Y) / RowHeight;
         }
 
         private int ColumnToViewX(int column)
         {
-            return column * ColumnWidth - ViewTopLeftOffset.X + Column0Width;
+            return column * ColumnWidth - m_ViewTopLeftOffset.X + Column0Width;
         }
 
         private int ViewXToColumn(int viewX)
         {
-            return (viewX - Column0Width + ViewTopLeftOffset.X) / ColumnWidth;
+            return (viewX - Column0Width + m_ViewTopLeftOffset.X) / ColumnWidth;
         }
 
         private Point ViewXYtoCell(Point view)
@@ -848,18 +847,18 @@ namespace GroundControl
         private KeyInfo GetKeyFromCell(int column, int row, bool includePrevKey = false)
         {
             // Out of range?
-            if (column >= ColumnToTrack.Count)
+            if (column >= m_ColumnToTrack.Count)
                 return null;
 
             // Get key
-            var track = ColumnToTrack[column];
+            var track = m_ColumnToTrack[column];
             var index = track.FindKeyByRow(row, includePrevKey);
             return index == -1 ? null : track.Keys[index];
         }
 
         private Point GetCellFromKey(KeyInfo key)
         {
-            return new Point(ColumnToTrack.IndexOf(KeyToTrack[key]), key.Row);
+            return new Point(m_ColumnToTrack.IndexOf(m_KeyToTrack[key]), key.Row);
         }
 
         private List<KeyInfo> KeysInRect(int column, int row, int columnSpan, int rowSpan, bool includePrevKey = false)
@@ -870,17 +869,17 @@ namespace GroundControl
             {
                 // Ignore out-of-range columns
                 if (column < 0) continue;
-                if (column >= ColumnToTrack.Count) break;
+                if (column >= m_ColumnToTrack.Count) break;
 
                 // Add keys in range
                 keys.AddRange(
-                    ColumnToTrack[column].Keys
+                    m_ColumnToTrack[column].Keys
                     .Where(t => (t.Row >= row) && (t.Row < row + rowSpan)));
 
                 if (includePrevKey)
                 {
                     // Search for key above rect
-                    var topKey = ColumnToTrack[column].Keys.Where(t => t.Row < row).LastOrDefault();
+                    var topKey = m_ColumnToTrack[column].Keys.Where(t => t.Row < row).LastOrDefault();
                     if (topKey != null)
                         keys.Add(topKey);
                 }
@@ -895,13 +894,13 @@ namespace GroundControl
             var keys = new List<KeyInfo>();
 
             // get cursor key
-            var key = GetKeyFromCell(Cursor.X, Cursor.Y, includePrevKey);
+            var key = GetKeyFromCell(m_Cursor.X, m_Cursor.Y, includePrevKey);
             if (key != null) 
                 keys.Add(key);
 
             // Get region keys
-            if (Selection != Rectangle.Empty)
-                keys.AddRange(KeysInRect(Selection.X, Selection.Y, Selection.Width, Selection.Height, includePrevKey).Where(k => k != key));
+            if (m_Selection != Rectangle.Empty)
+                keys.AddRange(KeysInRect(m_Selection.X, m_Selection.Y, m_Selection.Width, m_Selection.Height, includePrevKey).Where(k => k != key));
 
             return keys;
         }
@@ -909,7 +908,7 @@ namespace GroundControl
         private void JumpToNextKey(Direction direction)
         {
             // Is cursor is valid position?
-            if (Cursor.X >= ColumnToTrack.Count)
+            if (m_Cursor.X >= m_ColumnToTrack.Count)
                 return;
 
             switch (direction)
@@ -917,39 +916,39 @@ namespace GroundControl
                 case Direction.Up:
                 {
                     // find track
-                    var track = ColumnToTrack[Cursor.X];
+                    var track = m_ColumnToTrack[m_Cursor.X];
 
                     // Select get
-                    var Key = track.Keys.Where(k => k.Row < Cursor.Y).LastOrDefault();
+                    var key = track.Keys.Where(k => k.Row < m_Cursor.Y).LastOrDefault();
 
                     // Move cursor
-                    if (Key != null)
-                        MoveCursor(new Point(Cursor.X, Key.Row));
+                    if (key != null)
+                        MoveCursor(new Point(m_Cursor.X, key.Row));
                     break;
                 }
 
                 case Direction.Down:
                 {
                     // find track
-                    var track = ColumnToTrack[Cursor.X];
+                    var track = m_ColumnToTrack[m_Cursor.X];
 
                     // Select get
-                    var Key = track.Keys.Where(k => k.Row > Cursor.Y).FirstOrDefault();
+                    var key = track.Keys.Where(k => k.Row > m_Cursor.Y).FirstOrDefault();
 
                     // Move cursor
-                    if (Key != null)
-                        MoveCursor(new Point(Cursor.X, Key.Row));
+                    if (key != null)
+                        MoveCursor(new Point(m_Cursor.X, key.Row));
                     break;
                 }
 
                 case Direction.Left:
                 {
-                    for (var iColumn = Cursor.X - 1; iColumn >= 0; iColumn--)
+                    for (var iColumn = m_Cursor.X - 1; iColumn >= 0; iColumn--)
                     {
-                        var key = GetKeyFromCell(iColumn, Cursor.Y, true);
-                        if ((key != null) && ((key.Row == Cursor.Y) || (key.Interpolation != 0)))
+                        var key = GetKeyFromCell(iColumn, m_Cursor.Y, true);
+                        if ((key != null) && ((key.Row == m_Cursor.Y) || (key.Interpolation != 0)))
                         {
-                            MoveCursor(new Point(iColumn, Cursor.Y));
+                            MoveCursor(new Point(iColumn, m_Cursor.Y));
                             break;
                         }
                     }
@@ -959,12 +958,12 @@ namespace GroundControl
 
                 case Direction.Right:
                 {
-                    for (var iColumn = Cursor.X + 1; iColumn < ColumnToTrack.Count; iColumn++)
+                    for (var iColumn = m_Cursor.X + 1; iColumn < m_ColumnToTrack.Count; iColumn++)
                     {
-                        var key = GetKeyFromCell(iColumn, Cursor.Y, true);
-                        if ((key != null) && ((key.Row == Cursor.Y) || (key.Interpolation != 0)))
+                        var key = GetKeyFromCell(iColumn, m_Cursor.Y, true);
+                        if ((key != null) && ((key.Row == m_Cursor.Y) || (key.Interpolation != 0)))
                         {
-                            MoveCursor(new Point(iColumn, Cursor.Y));
+                            MoveCursor(new Point(iColumn, m_Cursor.Y));
                             break;
                         }
                     }
@@ -980,13 +979,13 @@ namespace GroundControl
             track.Keys.AddSorted(key);
 
             // Add to key-to-track map
-            KeyToTrack.Add(key, track);
+            m_KeyToTrack.Add(key, track);
 
             // Add to row map
-            KeysInRow[key.Row].Add(key);
+            m_KeysInRow[key.Row].Add(key);
 
             // Update client
-            server.SetKey(KeyToTrack[key].Name, key.Row, key.Value, key.Interpolation);
+            m_Server.SetKey(m_KeyToTrack[key].Name, key.Row, key.Value, key.Interpolation);
         }
 
         private void DeleteKeys(List<KeyInfo> keys)
@@ -995,47 +994,47 @@ namespace GroundControl
             foreach (var key in keys)
             {
                 // Report key remove to client
-                server.DeleteKey(KeyToTrack[key].Name, key.Row);
+                m_Server.DeleteKey(m_KeyToTrack[key].Name, key.Row);
 
                 // Remove from track
-                KeyToTrack[key].Keys.Remove(key);
-                KeyToTrack.Remove(key);
+                m_KeyToTrack[key].Keys.Remove(key);
+                m_KeyToTrack.Remove(key);
 
                 // Remove from row map
-                KeysInRow[key.Row].Remove(key);
+                m_KeysInRow[key.Row].Remove(key);
             }
         }
 
         private void RebuildVisibleColumnList()
         {
-            ColumnToTrack = Tracks.Where(t => t.Visible).ToList();
+            m_ColumnToTrack = m_Tracks.Where(t => t.Visible).ToList();
         }
 
         private void RebuildKeyMaps()
         {
             // Apply Row count
-            RowsCount = Project.Rows;
+            m_RowsCount = m_Project.Rows;
 
             // Remove keys outside of RowCount
-            Tracks.ForEach(t => t.Keys = t.Keys.Where(k => k.Row < RowsCount).ToList());
+            m_Tracks.ForEach(t => t.Keys = t.Keys.Where(k => k.Row < m_RowsCount).ToList());
 
             // Sort all tracks
-            foreach (var track in Tracks)
+            foreach (var track in m_Tracks)
                 track.Keys.Sort((a, b) => a.Row.CompareTo(b.Row));
 
             // Build the key to track
-            KeyToTrack = Tracks
+            m_KeyToTrack = m_Tracks
                 .SelectMany(t =>
                     t.Keys.Select(k => new Tuple<KeyInfo, TrackInfo>(k, t)))
                     .ToDictionary(t => t.Item1, t => t.Item2);
 
             // Update KeysInRow
-            KeysInRow = Enumerable.Range(0, RowsCount).Select(t => new List<KeyInfo>()).ToArray();
-            Tracks.ForEach(t => t.Keys.ForEach(k => KeysInRow[k.Row].Add(k)));
+            m_KeysInRow = Enumerable.Range(0, m_RowsCount).Select(t => new List<KeyInfo>()).ToArray();
+            m_Tracks.ForEach(t => t.Keys.ForEach(k => m_KeysInRow[k.Row].Add(k)));
 
             // Update Track Editor
-            if (TrackEditor != null)
-                TrackEditor.SetTracks(Tracks);
+            if (m_TrackEditor != null)
+                m_TrackEditor.SetTracks(m_Tracks);
 
             // Rebuild visible column list
             RebuildVisibleColumnList();
@@ -1048,19 +1047,19 @@ namespace GroundControl
         private void CopyToClipboard()
         {
             // Find range
-            var region = Selection;
+            var region = m_Selection;
             if (region == Rectangle.Empty)
-                region = new Rectangle(Cursor, new Size(1, 1));
+                region = new Rectangle(m_Cursor, new Size(1, 1));
 
             // Build table
             var sb = new StringBuilder();
-            for (int iRow = region.Top; iRow < region.Bottom; iRow++)
+            for (var iRow = region.Top; iRow < region.Bottom; iRow++)
             {
-                for (int iColumn = region.Left; iColumn < region.Right; iColumn++)
+                for (var iColumn = region.Left; iColumn < region.Right; iColumn++)
                 {
-                    var key = GetKeyFromCell(iColumn, iRow, false);
+                    var key = GetKeyFromCell(iColumn, iRow);
                     if (key != null)
-                        sb.AppendFormat("{0} {1}", (int)key.Interpolation, key.Value);
+                        sb.AppendFormat("{0} {1}", key.Interpolation, key.Value);
 
                     // Add space
                     if (iColumn != region.Right - 1)
@@ -1082,7 +1081,7 @@ namespace GroundControl
             {
                 // Get data from clipboard
                 var clipboardData = Clipboard.GetText(TextDataFormat.Text);
-                var table = clipboardData.TrimEnd('\r', '\n').Split(new string[] { "\r\n", "\n" }, StringSplitOptions.None).Select(t => t.Split('\t').ToArray()).ToArray();
+                var table = clipboardData.TrimEnd('\r', '\n').Split(new [] { "\r\n", "\n" }, StringSplitOptions.None).Select(t => t.Split('\t').ToArray()).ToArray();
 
                 // Make sure table is not empty
                 if (table.Length == 0) return;
@@ -1108,7 +1107,7 @@ namespace GroundControl
                             newKeys[iColumn].Add(key);
 
                             // Set fields
-                            key.Row           = Cursor.Y + iRow;
+                            key.Row           = m_Cursor.Y + iRow;
                             key.Value         = float.Parse(parts.Last(), CultureInfo.InvariantCulture);
                             key.Interpolation = parts.Length > 1 ? int.Parse(parts[0], CultureInfo.InvariantCulture) : 0;
                         }
@@ -1119,26 +1118,27 @@ namespace GroundControl
                 SaveUndoSnapshot();
 
                 // Get keys to remove from paste region
-                var oldKeys = KeysInRect(Cursor.X, Cursor.Y, table[0].Length, table.Length);
+                var oldKeys = KeysInRect(m_Cursor.X, m_Cursor.Y, table[0].Length, table.Length);
                 DeleteKeys(oldKeys);
 
                 // Add new keys
                 for (int iColumn = 0; iColumn < newKeys.Length; iColumn++)
                 {
                     // Make sure we're in a valid column
-                    if (Cursor.X + iColumn >= ColumnToTrack.Count)
+                    if (m_Cursor.X + iColumn >= m_ColumnToTrack.Count)
                         continue;
 
                     // Get track
-                    var track = ColumnToTrack[Cursor.X + iColumn];
+                    var track = m_ColumnToTrack[m_Cursor.X + iColumn];
 
                     // Add all keys
                     foreach (var key in newKeys[iColumn])
                         AddKeyToTrack(key, track);
                 }
             }
-            catch(Exception)
+            catch (Exception)
             {
+                // ignored
             }
 
             // Refresh screen
@@ -1148,9 +1148,9 @@ namespace GroundControl
         private void MoveKeys(Direction direction, int steps)
         {
             // Find region
-            var region = Selection;
+            var region = m_Selection;
             if (region == Rectangle.Empty)
-                region = new Rectangle(Cursor, new Size(1, 1));
+                region = new Rectangle(m_Cursor, new Size(1, 1));
 
             // Get a list of keys region
             var keysToMove = KeysInRect(region.X, region.Y, region.Width, region.Height);
@@ -1183,33 +1183,33 @@ namespace GroundControl
             {
                 // Find new track
                 var trackIndex = destRegion.X + (keyPositions[key].X - region.X);
-                if ((trackIndex < 0) || (trackIndex >= ColumnToTrack.Count))
+                if ((trackIndex < 0) || (trackIndex >= m_ColumnToTrack.Count))
                     continue;
 
                 // update row number
                 key.Row += yshift;
-                if ((key.Row < 0) || (key.Row >= RowsCount))
+                if ((key.Row < 0) || (key.Row >= m_RowsCount))
                     continue;
 
                 // Add key to track
-                AddKeyToTrack(key, ColumnToTrack[trackIndex]);
+                AddKeyToTrack(key, m_ColumnToTrack[trackIndex]);
             }
 
             // Store selection state
-            var storedSelection      = Selection;
-            var storedSelectionStart = SelectionStart;
+            var storedSelection      = m_Selection;
+            var storedSelectionStart = m_SelectionStart;
 
             // Move cursor (this cancels selection)
-            MoveCursor(new Point(Cursor.X + xshift, Cursor.Y + yshift)); 
+            MoveCursor(new Point(m_Cursor.X + xshift, m_Cursor.Y + yshift)); 
 
             // Restore selection
             if (storedSelection != Rectangle.Empty)
             {
-                SelectionStart = storedSelectionStart;
-                SelectionStart.Offset(xshift, yshift);
+                m_SelectionStart = storedSelectionStart;
+                m_SelectionStart.Offset(xshift, yshift);
 
                 // Update selection
-                Selection = storedSelection.Pan(right: xshift, bottom: yshift);
+                m_Selection = storedSelection.Pan(right: xshift, bottom: yshift);
             }
 
             // Redraw screen
@@ -1229,32 +1229,32 @@ namespace GroundControl
                 {
                     // Load data
                     XmlSerializer ser = new XmlSerializer(typeof(RocketProject));
-                    Project = ser.Deserialize(reader) as RocketProject;
+                    m_Project = ser.Deserialize(reader) as RocketProject;
 
                     // Cache variables
-                    Tracks = Project.Tracks;
-                    RowsCount = Project.Rows;
+                    m_Tracks = m_Project.Tracks;
+                    m_RowsCount = m_Project.Rows;
 
                     // Update project file status
-                    ProjectFilename = filename;
-                    Modified = false;
+                    m_ProjectFilename = filename;
+                    m_Modified = false;
                     UpdateApplicationTitle();
 
                     // Fix bookmarks
-                    foreach (var bookmark in Project.Bookmarks)
+                    foreach (var bookmark in m_Project.Bookmarks)
                         if (bookmark.Number == -1)
-                            bookmark.Number = Enumerable.Range(1, 9).FirstOrDefault(index => !Project.Bookmarks.Any(b => b.Number == index));
+                            bookmark.Number = Enumerable.Range(1, 9).FirstOrDefault(index => !m_Project.Bookmarks.Any(b => b.Number == index));
 
                     // Rebuild all key maps
                     RebuildKeyMaps();
 
                     // Update MRU
-                    mruMenu.AddFile(filename);
-                    mruMenu.SaveToRegistry();
+                    m_MruMenu.AddFile(filename);
+                    m_MruMenu.SaveToRegistry();
 
                     // Clear undo buffer
-                    UndoSnapIndex = -1;
-                    UndoSnaps = new List<Stream>();
+                    m_UndoSnapIndex = -1;
+                    m_UndoSnaps = new List<Stream>();
 
                     // Reload audio
                     LoadAudio();
@@ -1278,17 +1278,17 @@ namespace GroundControl
                 {
                     // Load data
                     var ser = new XmlSerializer(typeof(RocketProject));
-                    ser.Serialize(writer, Project);
+                    ser.Serialize(writer, m_Project);
                 }
 
                 // Update project file status
-                ProjectFilename = filename;
-                Modified = false;
+                m_ProjectFilename = filename;
+                m_Modified = false;
                 UpdateApplicationTitle();
 
                 // Update MRU
-                mruMenu.AddFile(filename);
-                mruMenu.SaveToRegistry();
+                m_MruMenu.AddFile(filename);
+                m_MruMenu.SaveToRegistry();
             }
             catch (Exception ex)
             {
@@ -1302,10 +1302,10 @@ namespace GroundControl
             var title = "Ground Control";
 
             // Add file name
-            if (string.IsNullOrEmpty(ProjectFilename))
+            if (string.IsNullOrEmpty(m_ProjectFilename))
                 title += " [Unsaved Project]";
             else
-                title += " [" + Path.GetFileNameWithoutExtension(ProjectFilename) + (Modified ? "*]" : "]");
+                title += " [" + Path.GetFileNameWithoutExtension(m_ProjectFilename) + (m_Modified ? "*]" : "]");
 
             // Update form property    
             Text = title;
@@ -1319,31 +1319,31 @@ namespace GroundControl
         {
             // Remove bookmark from current row if already exists
             var eraseBookmark = false;
-            var bookmark = Project.Bookmarks.FirstOrDefault(b => b.Row == Cursor.Y);
+            var bookmark = m_Project.Bookmarks.FirstOrDefault(b => b.Row == m_Cursor.Y);
             if (bookmark != null)
             {
                 // Check if this is a bookmark erase (toggling of bookmark)
                 eraseBookmark = (bookmark.Number == number) || (number == -1);
 
                 // Anyway, remove bookmark
-                Project.Bookmarks.Remove(bookmark);
+                m_Project.Bookmarks.Remove(bookmark);
             }
 
             // Remove bookmark if number already exists somewhere else
-            bookmark = Project.Bookmarks.FirstOrDefault(b => b.Number == number);
+            bookmark = m_Project.Bookmarks.FirstOrDefault(b => b.Number == number);
             if (bookmark != null)
-                Project.Bookmarks.Remove(bookmark);
+                m_Project.Bookmarks.Remove(bookmark);
 
             // Create new bookmark (if we need to)
             if (!eraseBookmark)
             {
                 // create a new bookmark
-                bookmark = new Bookmark() { Number = number, Row = Cursor.Y };
-                Project.Bookmarks.Add(bookmark);
+                bookmark = new Bookmark() { Number = number, Row = m_Cursor.Y };
+                m_Project.Bookmarks.Add(bookmark);
 
                 // If this is an automatic index finding bookmark, find index
                 if (bookmark.Number == -1)
-                    bookmark.Number = Enumerable.Range(1, 9).FirstOrDefault(index => !Project.Bookmarks.Any(b => b.Number == index));
+                    bookmark.Number = Enumerable.Range(1, 9).FirstOrDefault(index => !m_Project.Bookmarks.Any(b => b.Number == index));
             }
 
             // Refresh screen
@@ -1352,32 +1352,32 @@ namespace GroundControl
 
         private void GotoBookmark(int number)
         {
-            Bookmark target = null;
+            Bookmark target;
 
             // is it "Next bookmark"?
             if (number == -1)
             {
                 // get next bookmark
-                target = Project.Bookmarks.OrderBy(t => t.Row).Where(t => t.Row > Cursor.Y).FirstOrDefault();
+                target = m_Project.Bookmarks.OrderBy(t => t.Row).Where(t => t.Row > m_Cursor.Y).FirstOrDefault();
 
                 // if next could not be found, go to first
                 if (target == null)
-                    target = Project.Bookmarks.FirstOrDefault();
+                    target = m_Project.Bookmarks.FirstOrDefault();
             }
             else
             {
                 // Find relevent bookmark
-                target = Project.Bookmarks.FirstOrDefault(b => b.Number == number);
+                target = m_Project.Bookmarks.FirstOrDefault(b => b.Number == number);
             }
 
             // Did we actually manage to find a bookmark?
             if (target != null)
             {
                 // Move cursor
-                MoveCursor(new Point(Cursor.X, target.Row));
+                MoveCursor(new Point(m_Cursor.X, target.Row));
 
                 // Make sure we're centered in view
-                vScrollBar1.Value = Math.Max(0, (Cursor.Y + 1) * RowHeight + Row0Height - (pnlDraw.ClientSize.Height / 2));
+                vScrollBar1.Value = Math.Max(0, (m_Cursor.Y + 1) * RowHeight + Row0Height - (pnlDraw.ClientSize.Height / 2));
             }
         }
 
@@ -1388,57 +1388,57 @@ namespace GroundControl
         private void SaveUndoSnapshot()
         {
             // Everytime a snapshot is saved, it means that we're not doing undo right now
-            UndoInProcess = false;
+            m_UndoInProcess = false;
 
             // Remember that there was a change
-            Modified = true;
+            m_Modified = true;
             UpdateApplicationTitle();
 
             // Remove all snaps after UndoSnapIndex
-            while (UndoSnaps.Count - 1 > UndoSnapIndex)
-                UndoSnaps.RemoveAt(UndoSnaps.Count - 1);
+            while (m_UndoSnaps.Count - 1 > m_UndoSnapIndex)
+                m_UndoSnaps.RemoveAt(m_UndoSnaps.Count - 1);
 
             // Create snapshot
             var snapStream = new MemoryStream();
             var ser = new XmlSerializer(typeof(RocketProject));
-            ser.Serialize(snapStream, Project);
+            ser.Serialize(snapStream, m_Project);
 
             // Add stream
-            UndoSnaps.Add(snapStream);
-            UndoSnapIndex = UndoSnaps.Count - 1;
+            m_UndoSnaps.Add(snapStream);
+            m_UndoSnapIndex = m_UndoSnaps.Count - 1;
         }
 
         private void RestoreUndoSnapshot()
         {
             // Can we undo?
-            if (UndoSnapIndex == -1)
+            if (m_UndoSnapIndex == -1)
                 return;
 
             // Have we started an undo sequance?
-            if (!UndoInProcess)
+            if (!m_UndoInProcess)
             {
                 // if yes, save a snapshot so we can redo into current position
                 SaveUndoSnapshot();
-                UndoSnapIndex--;
+                m_UndoSnapIndex--;
 
                 // Remember that we're in an undo sequance
-                UndoInProcess = true;
+                m_UndoInProcess = true;
             }
 
             // Restore snapshot
-            var snapStream = UndoSnaps[UndoSnapIndex];
+            var snapStream = m_UndoSnaps[m_UndoSnapIndex];
             snapStream.Seek(0, SeekOrigin.Begin);
             var ser = new XmlSerializer(typeof(RocketProject));
-            Project = ser.Deserialize(snapStream) as RocketProject;
+            m_Project = ser.Deserialize(snapStream) as RocketProject;
 
             // Rebuild things...
-            Tracks = Project.Tracks;
-            RowsCount = Project.Rows;
+            m_Tracks = m_Project.Tracks;
+            m_RowsCount = m_Project.Rows;
             RebuildKeyMaps();
             RebuildVisibleColumnList();
 
             // Move restore point
-            UndoSnapIndex--;
+            m_UndoSnapIndex--;
         }
 
         #endregion
@@ -1448,18 +1448,18 @@ namespace GroundControl
         private void LoadAudio()
         {
             // Do we have anything to load
-            if (string.IsNullOrEmpty(Project.AudioFile))
+            if (string.IsNullOrEmpty(m_Project.AudioFile))
                 return;
 
             try
             {
                 // Open file
-                var reader = new AudioFileReader(Project.AudioFile);
+                var reader = new AudioFileReader(m_Project.AudioFile);
 
                 // read data
-                AudioWaveFormat = reader.WaveFormat;
-                AudioBuffer = new float[reader.Length / 4];
-                reader.Read(AudioBuffer, 0, AudioBuffer.Length);
+                m_AudioWaveFormat = reader.WaveFormat;
+                m_AudioBuffer = new float[reader.Length / 4];
+                reader.Read(m_AudioBuffer, 0, m_AudioBuffer.Length);
 
                 // Start building the audio track image
                 BuildAudioTrack();
@@ -1473,7 +1473,7 @@ namespace GroundControl
         private void BuildAudioTrack()
         {
             // Do we have a loaded audio?
-            if (AudioWaveFormat == null)
+            if (m_AudioWaveFormat == null)
                 return;
 
             // Make sure all scroll values are updated
@@ -1482,26 +1482,26 @@ namespace GroundControl
             g.Dispose();
 
             // Set bitmap size
-            AudioTrack = new Bitmap(pnlAudioView.ClientSize.Width, vScrollBar1.Maximum);
+            m_AudioTrack = new Bitmap(pnlAudioView.ClientSize.Width, vScrollBar1.Maximum);
 
             // Compute samples per pixel
-            var rowsPerSecond = Project.BPM * Project.RowsPerBeat / 60.0;
+            var rowsPerSecond = m_Project.BPM * m_Project.RowsPerBeat / 60.0;
 
             // Get bits
-            BitmapData bmpData = AudioTrack.LockBits(
-                    new Rectangle(0, 0, AudioTrack.Width, AudioTrack.Height),
+            BitmapData bmpData = m_AudioTrack.LockBits(
+                    new Rectangle(0, 0, m_AudioTrack.Width, m_AudioTrack.Height),
                     ImageLockMode.ReadWrite,
-                    AudioTrack.PixelFormat);
+                    m_AudioTrack.PixelFormat);
 
-            for (long y = 0; y < AudioTrack.Height; y++) // pixel-time = pixel-y / pixels-per-second
+            for (long y = 0; y < m_AudioTrack.Height; y++) // pixel-time = pixel-y / pixels-per-second
             {
                 // Compute first and last samples to include
-                var firstSample = (long)(AudioWaveFormat.SampleRate * (y - 0) / (RowHeight * rowsPerSecond));
-                var lastSample  = (long)(AudioWaveFormat.SampleRate * (y + 1) / (RowHeight * rowsPerSecond));
+                var firstSample = (long)(m_AudioWaveFormat.SampleRate * (y - 0) / (RowHeight * rowsPerSecond));
+                var lastSample  = (long)(m_AudioWaveFormat.SampleRate * (y + 1) / (RowHeight * rowsPerSecond));
                 if (firstSample < 0) firstSample = 0;
                 if (lastSample < 0)  lastSample = 0;
-                if (firstSample * AudioWaveFormat.Channels >= AudioBuffer.Length) firstSample = AudioBuffer.Length / AudioWaveFormat.Channels - 1;
-                if (lastSample  * AudioWaveFormat.Channels >= AudioBuffer.Length) lastSample  = AudioBuffer.Length / AudioWaveFormat.Channels - 1;
+                if (firstSample * m_AudioWaveFormat.Channels >= m_AudioBuffer.Length) firstSample = m_AudioBuffer.Length / m_AudioWaveFormat.Channels - 1;
+                if (lastSample  * m_AudioWaveFormat.Channels >= m_AudioBuffer.Length) lastSample  = m_AudioBuffer.Length / m_AudioWaveFormat.Channels - 1;
 
                 // Create pixel counter projection
                 var midPoint = bmpData.Width / 2;
@@ -1509,7 +1509,7 @@ namespace GroundControl
                 for (long iSample = firstSample; iSample < lastSample; iSample++)
                 {
                     // Find sample position
-                    var sample = midPoint + (int)(AudioBuffer[iSample * AudioWaveFormat.Channels] * bmpData.Width);
+                    var sample = midPoint + (int)(m_AudioBuffer[iSample * m_AudioWaveFormat.Channels] * bmpData.Width);
                     if (sample > bmpData.Width - 1) sample = bmpData.Width - 1;
                     if (sample < 0) sample = 0;
 
@@ -1552,7 +1552,7 @@ namespace GroundControl
             }
 
             // Release lock
-            AudioTrack.UnlockBits(bmpData);
+            m_AudioTrack.UnlockBits(bmpData);
             
             // Refresh screen
             pnlAudioView.Invalidate();
@@ -1565,7 +1565,7 @@ namespace GroundControl
         private void MainForm_FormClosing(object sender, FormClosingEventArgs e)
         {
             // Ask user what to do if application closes with an unsaved project
-            if (Modified)
+            if (m_Modified)
                 if (MessageBox.Show(this, "Are you sure you want to close aplication without saving?", "Unsaved Project", MessageBoxButtons.YesNo, MessageBoxIcon.Exclamation) != DialogResult.Yes)
                     e.Cancel = true;                     
         }
@@ -1573,10 +1573,10 @@ namespace GroundControl
         private void tmrUpdateUI_Tick(object sender, EventArgs e)
         {
             // Refresh trackManager option
-            trackManagerToolStripMenuItem.Checked = TrackEditor.Visible;
+            trackManagerToolStripMenuItem.Checked = m_TrackEditor.Visible;
 
-            toolStripConnectionStatus.Text      = server.IsConnected() ? "Connected" : "Disconnected";
-            toolStripConnectionStatus.ForeColor = server.IsConnected() ? Color.DarkGreen : Color.DarkRed;
+            toolStripConnectionStatus.Text      = m_Server.IsConnected() ? "Connected" : "Disconnected";
+            toolStripConnectionStatus.ForeColor = m_Server.IsConnected() ? Color.DarkGreen : Color.DarkRed;
         }
 
         private void OnMruFile(int number, String filename)
@@ -1587,16 +1587,16 @@ namespace GroundControl
         private void newToolStripMenuItem_Click(object sender, EventArgs e)
         {
             // Ask "are you sure"
-            if (Modified)
+            if (m_Modified)
                 if (MessageBox.Show(this, "Unsaving current project detected.\nAre you sure you want to start a new project?", "Unsaved Project", MessageBoxButtons.YesNo, MessageBoxIcon.Exclamation) != DialogResult.Yes)
                     return;
 
-            ProjectFilename = "";
-            Project = new RocketProject();
-            Tracks = Project.Tracks;
-            UndoSnaps = new List<Stream>();
-            UndoSnapIndex = -1;
-            Modified = false;
+            m_ProjectFilename = "";
+            m_Project = new RocketProject();
+            m_Tracks = m_Project.Tracks;
+            m_UndoSnaps = new List<Stream>();
+            m_UndoSnapIndex = -1;
+            m_Modified = false;
 
             // Update app title
             UpdateApplicationTitle();
@@ -1626,10 +1626,10 @@ namespace GroundControl
         private void saveToolStripMenuItem_Click(object sender, EventArgs e)
         {
             // Is it the first save? if yes, run saveAs to give a file name
-            if (string.IsNullOrEmpty(ProjectFilename))
+            if (string.IsNullOrEmpty(m_ProjectFilename))
                 saveAsToolStripMenuItem_Click(null, null);
             else
-                SaveProject(ProjectFilename);
+                SaveProject(m_ProjectFilename);
         }
 
         private void saveAsToolStripMenuItem_Click(object sender, EventArgs e)
@@ -1671,11 +1671,11 @@ namespace GroundControl
         private void redoToolStripMenuItem_Click(object sender, EventArgs e)
         {
             // Is redo allowed?
-            if (UndoSnapIndex >= UndoSnaps.Count - 2)
+            if (m_UndoSnapIndex >= m_UndoSnaps.Count - 2)
                 return;
 
             // Jump two-steps forward (and restore undosnap goes one step back)
-            UndoSnapIndex += 2;
+            m_UndoSnapIndex += 2;
 
             // Restore point
             RestoreUndoSnapshot();
@@ -1686,8 +1686,8 @@ namespace GroundControl
 
         private void optionsToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            var dlg = new FormSettings(Project);
-            if (dlg.ShowDialog(this) == System.Windows.Forms.DialogResult.OK)
+            var dlg = new FormSettings(m_Project);
+            if (dlg.ShowDialog(this) == DialogResult.OK)
             {
                 // Rebuild all keys maps
                 RebuildKeyMaps();
@@ -1699,7 +1699,7 @@ namespace GroundControl
 
         private void trackManagerToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            TrackEditor.Visible = !TrackEditor.Visible;
+            m_TrackEditor.Visible = !m_TrackEditor.Visible;
         }
 
         #endregion
