@@ -14,6 +14,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using System.Xml.Serialization;
+using System.Globalization;
 
 namespace GroundControl
 {
@@ -434,7 +435,7 @@ namespace GroundControl
                 }
 
                 // Save value in key
-                key.Value = float.Parse(textEdit.Text);
+                key.Value = float.Parse(textEdit.Text, CultureInfo.InvariantCulture);
 
                 // Update client
                 server.SetKey(track.Name, key.Row, key.Value, key.Interpolation);
@@ -1108,8 +1109,8 @@ namespace GroundControl
 
                             // Set fields
                             key.Row           = Cursor.Y + iRow;
-                            key.Value         = float.Parse(parts.Last());
-                            key.Interpolation = parts.Length > 1 ? int.Parse(parts[0]) : 0;
+                            key.Value         = float.Parse(parts.Last(), CultureInfo.InvariantCulture);
+                            key.Interpolation = parts.Length > 1 ? int.Parse(parts[0], CultureInfo.InvariantCulture) : 0;
                         }
                     }
                 }
