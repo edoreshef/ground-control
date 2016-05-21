@@ -729,7 +729,7 @@ namespace GroundControl
                     var color = (key.Row == m_Cursor.Y && iColumn == m_Cursor.X) ? Brushes.Black : Brushes.White;
 
                     // Draw value
-                    g.DrawString(key.Value.ToString("0.00"), rowFont, color, CellRect(iColumn, key.Row).Expand(right: -4), sfFar);
+                    g.DrawString(key.Value.ToString("0.00", CultureInfo.InvariantCulture), rowFont, color, CellRect(iColumn, key.Row).Expand(right: -4), sfFar);
 
                     // Draw Interpolation
                     if (key.Interpolation != 0)
