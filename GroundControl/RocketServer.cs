@@ -188,6 +188,12 @@ namespace GroundControl
             write(BitConverter.GetBytes(row).Reverse().ToArray());
         }
 
+        public void RemoteExport()
+        {
+            // Build and send command
+            write(new[] { (byte)Command.SaveTracks });
+        }
+
         public bool IsConnected()
         {
             return (connectedClient != null) && (connectedClient.Client != null) && (connectedClient.Client.Connected);

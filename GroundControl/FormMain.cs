@@ -1702,6 +1702,22 @@ namespace GroundControl
             m_TrackEditor.Visible = !m_TrackEditor.Visible;
         }
 
+        private void remoteExportToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            // Make sure we have a connection
+            if (!m_Server.IsConnected())
+            {
+                MessageBox.Show(this, "Remote export requires a connection to the player.\nPlease make sure demo is running and connected and try again.", "Remote Export", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return;
+            }
+
+            // Request remote export
+            m_Server.RemoteExport();
+
+            // Notify user
+            MessageBox.Show(this, "Player was requested to export tracks", "Remote Export", MessageBoxButtons.OK, MessageBoxIcon.Information);
+        }
+
         #endregion
     }
 }
