@@ -21,6 +21,7 @@ namespace GroundControl
         const int ColumnWidth = 70;
         const int Row0Height = 25;
         const int RowHeight = 15;
+        const int InterpolationBarWidth = 3;
 
         // Document related
         private string m_ProjectFilename;
@@ -508,7 +509,7 @@ namespace GroundControl
             if (ColumnToViewX(m_Cursor.X) < Column0Width)
                 hScrollBar1.Value = m_Cursor.X * ColumnWidth;
             if (ColumnToViewX(m_Cursor.X + 1) > pnlDraw.ClientSize.Width)
-                hScrollBar1.Value = Math.Max(0, (m_Cursor.X + 1) * ColumnWidth + Column0Width - pnlDraw.ClientSize.Width);
+                hScrollBar1.Value = Math.Max(0, (m_Cursor.X + 1) * ColumnWidth + Column0Width - pnlDraw.ClientSize.Width + InterpolationBarWidth);
 
             // Refresh everything
             UpdateView();
@@ -604,7 +605,7 @@ namespace GroundControl
 
             // Compute grid size
             var columnsCount = m_ColumnToTrack.Count;
-            var totalWidth = Column0Width + columnsCount * ColumnWidth;
+            var totalWidth = Column0Width + columnsCount * ColumnWidth + InterpolationBarWidth;
             var totalHeight = m_RowsCount * RowHeight;
 
             // Update scroll bars
