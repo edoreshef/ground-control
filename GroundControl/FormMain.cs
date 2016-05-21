@@ -3,6 +3,7 @@ using NAudio.Wave;
 using System;
 using System.Collections.Generic;
 using System.Drawing;
+using System.Drawing.Drawing2D;
 using System.Drawing.Imaging;
 using System.IO;
 using System.Linq;
@@ -65,6 +66,9 @@ namespace GroundControl
         private FormTrackEditor m_TrackEditor;
 
         private enum Direction { Up, Down, Left, Right };
+
+        // LUTs
+        private string[] m_InterpolationToString = {"Step", "Linear", "Smooth", "Ramp"};
 
         public MainForm()
         {
@@ -307,7 +311,7 @@ namespace GroundControl
                     {
                         // Get current value
                         var track = m_ColumnToTrack[m_Cursor.X];
-                        textEdit.Text = track.GetValue(m_Cursor.Y).ToString("0.00");
+                        textEdit.Text = track.GetValue(m_Cursor.Y).ToString("0.00", CultureInfo.InvariantCulture);
                     }
                     else
                     {
@@ -355,7 +359,8 @@ namespace GroundControl
                     m_Server.SetKey(m_KeyToTrack[key].Name, key.Row, key.Value, key.Interpolation);
                 }
 
-                pnlDraw.Invalidate();
+                // Redraw grid and status bar
+                UpdateView();
             }
         }
 
@@ -498,18 +503,24 @@ namespace GroundControl
             if (ColumnToViewX(m_Cursor.X + 1) > pnlDraw.ClientSize.Width)
                 hScrollBar1.Value = Math.Max(0, (m_Cursor.X + 1) * ColumnWidth + Column0Width - pnlDraw.ClientSize.Width);
 
+            // Refresh everything
+            UpdateView();
+        }
+
+        private void UpdateView()
+        {
             // Update status bar
-            toolStripCurrentRow.Text = "Row: " + m_Cursor.Y;
+            toolStripCurrentRow.Text = @"Row: " + m_Cursor.Y;
             if (m_Cursor.X < m_ColumnToTrack.Count)
             {
                 // Display current track/row value
                 var track = m_ColumnToTrack[m_Cursor.X];
-                toolStripCurrentValue.Text = track.GetValue(m_Cursor.Y).ToString("0.00");
+                toolStripCurrentValue.Text = track.GetValue(m_Cursor.Y).ToString("0.00", CultureInfo.InvariantCulture);
 
                 // Display interpolation
                 var keyIndex = track.FindKeyByRow(m_Cursor.Y, true);
                 if (keyIndex >= 0)
-                    toolStripInterpolation.Text = track.Keys[keyIndex].Interpolation.ToString();
+                    toolStripInterpolation.Text = m_InterpolationToString[track.Keys[keyIndex].Interpolation];
                 else
                     toolStripInterpolation.Text = "";
             }
@@ -1059,7 +1070,7 @@ namespace GroundControl
                 {
                     var key = GetKeyFromCell(iColumn, iRow);
                     if (key != null)
-                        sb.AppendFormat("{0} {1}", key.Interpolation, key.Value);
+                        sb.AppendFormat(CultureInfo.InvariantCulture, "{0} {1}", key.Interpolation, key.Value);
 
                     // Add space
                     if (iColumn != region.Right - 1)
