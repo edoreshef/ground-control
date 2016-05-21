@@ -7,7 +7,7 @@ The editor is C# written and it allows lots of nice little features.
 Installing
 ----------
 Ground Control is portable so there is no setup involved.  
-The only prerequisite is [.NET framework v4.5](https://www.microsoft.com/en-us/download/details.aspx?id=30653)  
+The only prerequisite is [.NET framework v4.5](https://www.microsoft.com/en-us/download/details.aspx?id=30653) - Included by default in Windows 8 and up.
 To use Ground Control download the [latest binaries](http://bit.ly/ground-control-bin), extract files and execute GroundControl.exe
 
 Features

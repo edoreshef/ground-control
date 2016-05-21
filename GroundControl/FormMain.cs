@@ -431,9 +431,16 @@ namespace GroundControl
                 var key = GetKeyFromCell(m_EditInKey.X, m_EditInKey.Y);
                 if (key == null)
                 {
+                    // Get prev key (before adding the key)
+                    var prevKey = GetKeyFromCell(m_EditInKey.X, m_EditInKey.Y, true);
+
                     // Add key to track
-                    key = new KeyInfo() { Row = m_EditInKey.Y };
+                    key = new KeyInfo { Row = m_EditInKey.Y };
                     AddKeyToTrack(key, track);
+
+                    // Copy interpolation mode from previusKey
+                    if (prevKey != null)
+                        key.Interpolation = prevKey.Interpolation;
                 }
 
                 // Save value in key
