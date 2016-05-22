@@ -98,6 +98,12 @@ namespace System.Windows.Forms
             return (num + divider - 1) / divider;
         }
 
+        public static double LogCeil(double value, double logBase)
+        {
+            var logValue = Math.Log(value, logBase);
+            logValue = Math.Ceiling(Math.Round(logValue, 2));
+            return Math.Pow(logBase, logValue);
+        }
     }
 
     public static class MyExtensions

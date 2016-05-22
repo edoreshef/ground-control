@@ -206,8 +206,8 @@ namespace GroundControl
                     m_Server.SetKey(m_KeyToTrack[key].Name, key.Row, key.Value, key.Interpolation);
                 }
 
-                // Redraw
-                pnlDraw.Invalidate();
+                // Update view
+                UpdateView();
 
                 // Exit?
                 if (e.KeyCode == Keys.F4)
@@ -456,7 +456,7 @@ namespace GroundControl
             textEdit.Hide();
 
             // Redraw screen
-            pnlDraw.Invalidate();
+            UpdateView();
         }
 
         private void MoveCursor(Point newPosition, bool remoteSetRow = false)
@@ -787,6 +787,40 @@ namespace GroundControl
                     GraphicsUnit.Pixel);
             }
 
+            // Do we have a valid current column?
+            if (m_Cursor.X < m_ColumnToTrack.Count)
+            {
+                // Find track for graph rendering
+                var track = m_ColumnToTrack[m_Cursor.X];
+
+                // Get values
+                var clientHeight = pnlDraw.ClientSize.Height;
+                var values = new float[clientHeight];
+                for (var y = 0; y < clientHeight; y++)
+                    values[y] = track.GetValue(ViewYToRow((float)y));
+
+                // Find data range (so we can scale it to view)
+                var minValue = track.Keys.Min(t => t.Value);
+                var maxValue = track.Keys.Max(t => t.Value);
+                var delta = maxValue - minValue;
+
+                // Make sure we have a value range
+                if (delta > float.Epsilon)
+                {
+                    // Find Scale-to-view transformation
+                    var clientWidth = pnlAudioView.ClientRectangle.Width;
+                    var distFromEdge = clientWidth * 0.2f;
+                    var scale = (pnlAudioView.ClientRectangle.Width - distFromEdge * 2) / delta;
+
+                    // Draw Graph
+                    for (var y = 1; y < clientHeight; y++)
+                        e.Graphics.DrawLine(Pens.Red,
+                            distFromEdge + (values[y - 1] - minValue)*scale, y - 1,
+                            distFromEdge + (values[y    ] - minValue)*scale, y);
+                }
+            }
+
+
             // Draw cursor
             var cursorViewY = RowToViewY(m_Cursor.Y) + RowHeight / 2;
             e.Graphics.DrawLine(Pens.Yellow, 0, cursorViewY, pnlAudioView.ClientSize.Width, cursorViewY);
@@ -802,6 +836,11 @@ namespace GroundControl
         }
 
         private int ViewYToRow(int viewY)
+        {
+            return (viewY - Row0Height + m_ViewTopLeftOffset.Y) / RowHeight;
+        }
+
+        private float ViewYToRow(float viewY)
         {
             return (viewY - Row0Height + m_ViewTopLeftOffset.Y) / RowHeight;
         }

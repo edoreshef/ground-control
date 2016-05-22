@@ -16,6 +16,7 @@ Ground Control is has a similar features set to kusma/GNU Rocket project.
 However, it includes several improvements:
 - Easier keyboard navigation and editing
 - Side-by-side audio waveform view
+- Current Track value plot
 - Mouse friendly user interface
 - Key position sliding
 - Track removing/hiding/renaming/reordering
@@ -32,7 +33,7 @@ Keyboard shortcuts
 | Home/End                 | Move cursor to beginning/end |
 | Ctrl+Up/Down/Left/Right  | Jump to closest key          |
 | W/A/S/D                  | Slide selected keys          |
-| Enter                    | Enter key frame value        |
+| Enter                    | Enter key frame value        | 
 | Del                      | Delete key frame             |
 | i                        | Enumerate interpolation mode |
 | k                        | Set/Clear bookmark           |
