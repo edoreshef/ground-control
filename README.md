@@ -17,6 +17,7 @@ However, it includes several improvements:
 - Easier keyboard navigation and editing
 - Side-by-side audio waveform view
 - Current Track value plot
+- Overview display and navigation
 - Mouse friendly user interface
 - Key position sliding
 - Track removing/hiding/renaming/reordering
