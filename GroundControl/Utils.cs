@@ -104,6 +104,15 @@ namespace System.Windows.Forms
             logValue = Math.Ceiling(Math.Round(logValue, 2));
             return Math.Pow(logBase, logValue);
         }
+
+        public static int EnsureRange(int value, int minValue, int maxValue)
+        {
+            return Math.Max(minValue, Math.Min(maxValue, value));
+        }
+        public static float EnsureRange(float value, float minValue, float maxValue)
+        {
+            return Math.Max(minValue, Math.Min(maxValue, value));
+        }
     }
 
     public static class MyExtensions

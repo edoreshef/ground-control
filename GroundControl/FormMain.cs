@@ -17,11 +17,11 @@ namespace GroundControl
 {
     public partial class MainForm : Form
     {
-        const int Column0Width = 100;
-        const int ColumnWidth = 70;
-        const int Row0Height = 25;
-        const int RowHeight = 15;
-        const int InterpolationBarWidth = 3;
+        private const int Column0Width = 100;
+        private const int ColumnWidth = 70;
+        private const int Row0Height = 25;
+        private const int RowHeight = 15;
+        private const int InterpolationBarWidth = 3;
 
         // Document related
         private string m_ProjectFilename;
@@ -42,6 +42,12 @@ namespace GroundControl
         private Bitmap     m_AudioTrack;
         private float[]    m_AudioBuffer;
         private WaveFormat m_AudioWaveFormat;
+
+        // Scroll view related
+        private const int m_VScroll_XMargin = 1;
+        private const int m_VScroll_YMargin = 1;
+        private float m_VScroll_YScale;
+        private int m_VSCroll_XScale;
 
         // Selection related members
         private Rectangle m_Selection = Rectangle.Empty;
@@ -66,7 +72,13 @@ namespace GroundControl
         // Track manager
         private FormTrackEditor m_TrackEditor;
 
-        private enum Direction { Up, Down, Left, Right };
+        private enum Direction
+        {
+            Up,
+            Down,
+            Left,
+            Right
+        };
 
         // LUTs
         private string[] m_InterpolationToString = {"Step", "Linear", "Smooth", "Ramp"};
@@ -85,7 +97,9 @@ namespace GroundControl
             pnlDraw.KeyPress += pnlDraw_KeyPress;
             pnlDraw.MouseWheel += pnlDraw_MouseWheel;
             pnlAudioView.TabStop = false;
-            pnlAudioView.GotFocus += pnlAudioView_GotFocus;
+            pnlAudioView.GotFocus += panel_GotFocus;
+            pnlVScroll.TabStop = false;
+            pnlVScroll.GotFocus += panel_GotFocus;
 
             // Create a new empty project
             newToolStripMenuItem_Click(null, null);
@@ -124,6 +138,7 @@ namespace GroundControl
             pnlEditor.SetBounds(0, 0, rect.Width - vScrollBar1.Width, rect.Height - hScrollBar1.Height);
             pnlDraw.Refresh();
             pnlAudioView.Refresh();
+            pnlVScroll.Refresh();
         }
 
         private void pnlAudioView_SizeChanged(object sender, EventArgs e)
@@ -137,11 +152,12 @@ namespace GroundControl
 
         private void ScrollBar_ValueChanged(object sender, EventArgs e)
         {
-            pnlDraw.Invalidate();
-            pnlAudioView.Invalidate();
+            pnlDraw.Refresh();
+            pnlAudioView.Refresh();
+            pnlVScroll.Refresh();
         }
 
-        private void pnlAudioView_GotFocus(object sender, EventArgs e)
+        private void panel_GotFocus(object sender, EventArgs e)
         {
             pnlDraw.Focus();
         }
@@ -287,7 +303,6 @@ namespace GroundControl
 
             if (e.KeyCode == Keys.K) SetBookmark(-1);
 
-            
             e.Handled = true;
         }
 
@@ -302,7 +317,7 @@ namespace GroundControl
                     // Ignore if we're outside of valid range
                     if (m_Cursor.X >= m_ColumnToTrack.Count)
                         return;
-                    
+
                     // Setup editing
                     textEdit.Bounds = CellRect(m_Cursor.X, m_Cursor.Y);
                     textEdit.Font = new Font("Courier New", 10, FontStyle.Bold);
@@ -541,6 +556,7 @@ namespace GroundControl
             // redraw window
             pnlDraw.Invalidate();
             pnlAudioView.Invalidate();
+            pnlVScroll.Invalidate();
         }
 
         #endregion
@@ -663,7 +679,7 @@ namespace GroundControl
 
             // Draw rows index labels 
             g.Clip = new Region(CellRect(-1, -1, 1, m_RowsCount));
-            for (int iRow = m_ViewTopRowNr; iRow < m_ViewBotRowNr; iRow++)
+            for (var iRow = m_ViewTopRowNr; iRow < m_ViewBotRowNr; iRow++)
             {
                 // Select row back color
                 var color = (iRow % 8 == 0) ? Utils.Gray(200) : Utils.Gray(150);
@@ -932,7 +948,7 @@ namespace GroundControl
                 // Add keys in range
                 keys.AddRange(
                     m_ColumnToTrack[column].Keys
-                    .Where(t => (t.Row >= row) && (t.Row < row + rowSpan)));
+                        .Where(t => (t.Row >= row) && (t.Row < row + rowSpan)));
 
                 if (includePrevKey)
                 {
@@ -953,7 +969,7 @@ namespace GroundControl
 
             // get cursor key
             var key = GetKeyFromCell(m_Cursor.X, m_Cursor.Y, includePrevKey);
-            if (key != null) 
+            if (key != null)
                 keys.Add(key);
 
             // Get region keys
@@ -1010,7 +1026,7 @@ namespace GroundControl
                             break;
                         }
                     }
-                    
+
                     break;
                 }
 
@@ -1084,7 +1100,7 @@ namespace GroundControl
             m_KeyToTrack = m_Tracks
                 .SelectMany(t =>
                     t.Keys.Select(k => new Tuple<KeyInfo, TrackInfo>(k, t)))
-                    .ToDictionary(t => t.Item1, t => t.Item2);
+                .ToDictionary(t => t.Item1, t => t.Item2);
 
             // Update KeysInRow
             m_KeysInRow = Enumerable.Range(0, m_RowsCount).Select(t => new List<KeyInfo>()).ToArray();
@@ -1139,7 +1155,11 @@ namespace GroundControl
             {
                 // Get data from clipboard
                 var clipboardData = Clipboard.GetText(TextDataFormat.Text);
-                var table = clipboardData.TrimEnd('\r', '\n').Split(new [] { "\r\n", "\n" }, StringSplitOptions.None).Select(t => t.Split('\t').ToArray()).ToArray();
+                var table =
+                    clipboardData.TrimEnd('\r', '\n')
+                        .Split(new[] {"\r\n", "\n"}, StringSplitOptions.None)
+                        .Select(t => t.Split('\t').ToArray())
+                        .ToArray();
 
                 // Make sure table is not empty
                 if (table.Length == 0) return;
@@ -1150,7 +1170,7 @@ namespace GroundControl
                     return;
 
                 // Convert data
-                var newKeys = Enumerable.Range(0, table[0].Length).Select(t=> new List<KeyInfo>()).ToArray();
+                var newKeys = Enumerable.Range(0, table[0].Length).Select(t => new List<KeyInfo>()).ToArray();
                 for (int iRow = 0; iRow < table.Length; iRow++)
                 {
                     for (int iColumn = 0; iColumn < table[0].Length; iColumn++)
@@ -1258,7 +1278,7 @@ namespace GroundControl
             var storedSelectionStart = m_SelectionStart;
 
             // Move cursor (this cancels selection)
-            MoveCursor(new Point(m_Cursor.X + xshift, m_Cursor.Y + yshift)); 
+            MoveCursor(new Point(m_Cursor.X + xshift, m_Cursor.Y + yshift));
 
             // Restore selection
             if (storedSelection != Rectangle.Empty)
@@ -1301,7 +1321,9 @@ namespace GroundControl
                     // Fix bookmarks
                     foreach (var bookmark in m_Project.Bookmarks)
                         if (bookmark.Number == -1)
-                            bookmark.Number = Enumerable.Range(1, 9).FirstOrDefault(index => !m_Project.Bookmarks.Any(b => b.Number == index));
+                            bookmark.Number =
+                                Enumerable.Range(1, 9)
+                                    .FirstOrDefault(index => !m_Project.Bookmarks.Any(b => b.Number == index));
 
                     // Rebuild all key maps
                     RebuildKeyMaps();
@@ -1320,6 +1342,7 @@ namespace GroundControl
                     // Refresh screen
                     pnlDraw.Refresh();
                     pnlAudioView.Refresh();
+                    pnlVScroll.Refresh();
                 }
             }
             catch (Exception ex)
@@ -1327,7 +1350,7 @@ namespace GroundControl
                 MessageBox.Show(this, "Error while loading the file.\n" + ex.Message, "Loading Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
-        
+
         private void SaveProject(string filename)
         {
             try
@@ -1522,7 +1545,7 @@ namespace GroundControl
                 // Start building the audio track image
                 BuildAudioTrack();
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
                 MessageBox.Show(this, "Error while loading audio file.\n" + ex.Message, "Loading Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
@@ -1547,9 +1570,9 @@ namespace GroundControl
 
             // Get bits
             BitmapData bmpData = m_AudioTrack.LockBits(
-                    new Rectangle(0, 0, m_AudioTrack.Width, m_AudioTrack.Height),
-                    ImageLockMode.ReadWrite,
-                    m_AudioTrack.PixelFormat);
+                new Rectangle(0, 0, m_AudioTrack.Width, m_AudioTrack.Height),
+                ImageLockMode.ReadWrite,
+                m_AudioTrack.PixelFormat);
 
             for (long y = 0; y < m_AudioTrack.Height; y++) // pixel-time = pixel-y / pixels-per-second
             {
@@ -1611,7 +1634,7 @@ namespace GroundControl
 
             // Release lock
             m_AudioTrack.UnlockBits(bmpData);
-            
+
             // Refresh screen
             pnlAudioView.Invalidate();
         }
@@ -1625,7 +1648,7 @@ namespace GroundControl
             // Ask user what to do if application closes with an unsaved project
             if (m_Modified)
                 if (MessageBox.Show(this, "Are you sure you want to close aplication without saving?", "Unsaved Project", MessageBoxButtons.YesNo, MessageBoxIcon.Exclamation) != DialogResult.Yes)
-                    e.Cancel = true;                     
+                    e.Cancel = true;
         }
 
         private void tmrUpdateUI_Tick(object sender, EventArgs e)
@@ -1666,6 +1689,7 @@ namespace GroundControl
 
             pnlDraw.Invalidate();
             pnlAudioView.Invalidate();
+            pnlVScroll.Invalidate();
         }
 
         private void loadToolStripMenuItem_Click(object sender, EventArgs e)
@@ -1777,6 +1801,89 @@ namespace GroundControl
         }
 
         #endregion
+
+        private void panelVScroll_Paint(object sender, PaintEventArgs e)
+        {
+            if (m_ColumnToTrack.Count == 0)
+                return;
+
+            var g = e.Graphics;
+
+            var interColors = new[]
+            {
+                new SolidBrush(Color.White),
+                new SolidBrush(Color.Red),
+                new SolidBrush(Utils.RGB(0x69FF24)),
+                new SolidBrush(Utils.RGB(0x2491FF))
+            };
+
+            // compute view scales
+            var clientWidth = pnlVScroll.ClientSize.Width;
+            var clientHeight = pnlVScroll.ClientSize.Height;
+            m_VScroll_YScale = (float)     (clientHeight - m_VScroll_YMargin * 2) / m_RowsCount;
+            m_VSCroll_XScale = Math.Max(1, (clientWidth  - m_VScroll_XMargin * 2) / m_ColumnToTrack.Count);
+
+            // Draw column keys
+            for (var iCol = 0; iCol < m_ColumnToTrack.Count; iCol++)
+            {
+                // Draw background
+                var color = iCol%2 == 0 ? Utils.Gray(20) : Utils.Gray(0);
+                g.FillRectangle(new SolidBrush(color), m_VScroll_YMargin + m_VSCroll_XScale*iCol, 0, m_VScroll_XMargin + m_VSCroll_XScale*iCol, clientHeight);
+
+                var track = m_ColumnToTrack[iCol];
+                for (var iKey = 0; iKey < track.Keys.Count; iKey++)
+                {
+                    // Compute key length
+                    var key = track.Keys[iKey];
+                    var length = iKey == track.Keys.Count - 1
+                        ? m_RowsCount - key.Row
+                        : track.Keys[iKey + 1].Row - key.Row;
+                    if (key.Interpolation == 0) length = 1;
+
+                    // Select color
+                    var brush = interColors[key.Interpolation];
+                    g.FillRectangle(brush, m_VScroll_XMargin + m_VSCroll_XScale*iCol, m_VScroll_YMargin + m_VScroll_YScale*key.Row, m_VSCroll_XScale,
+                        (float) Math.Ceiling(length*m_VScroll_YScale));
+                }
+            }
+
+            // Draw frame
+            var leftCol  = ViewXToColumn(Column0Width);
+            var rightCol = ViewXToColumn(pnlDraw.ClientSize.Width);
+            var topRow = ViewYToRow(Row0Height);
+            var botRow = ViewYToRow(pnlDraw.ClientSize.Height);
+            var viewRect = Rectangle.FromLTRB(
+                m_VScroll_XMargin + m_VSCroll_XScale * leftCol,  (int)(m_VScroll_YMargin + m_VScroll_YScale * topRow),
+                m_VScroll_XMargin + m_VSCroll_XScale * rightCol, (int)(m_VScroll_YMargin + m_VScroll_YScale * botRow));
+            g.DrawRectangle(Pens.Yellow, viewRect);
+        }
+
+        private void panelVScroll_SizeChanged(object sender, EventArgs e)
+        {
+            pnlVScroll.Invalidate();
+        }
+
+        private void pnlVScroll_MouseMove(object sender, MouseEventArgs e)
+        {
+            if (e.Button == MouseButtons.Left)
+            {
+                // Find center row/column
+                var centerColumn = (e.X - m_VScroll_XMargin) / m_VSCroll_XScale;
+                var centerRow    = (e.Y - m_VScroll_YMargin) / m_VScroll_YScale;
+
+                // Enforce view limits
+                centerColumn = Utils.EnsureRange(centerColumn, 0, m_ColumnToTrack.Count - 1);
+                centerRow    = Utils.EnsureRange(centerRow, 0, m_RowsCount - 1);
+
+                // Compute center offset
+                var xOffset = pnlDraw.ClientSize.Width / 2;
+                var yOffset = pnlDraw.ClientSize.Height / 2;
+
+                // Update Scroll position
+                vScrollBar1.Value = Math.Max(0, (int)(centerRow    * RowHeight   - yOffset));
+                hScrollBar1.Value = Math.Max(0, (int)(centerColumn * ColumnWidth - xOffset));
+            }
+        }
     }
 }
 

@@ -1,11 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.ComponentModel;
-using System.Data;
 using System.Drawing;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Windows.Forms;
 
 namespace GroundControl
@@ -21,7 +17,7 @@ namespace GroundControl
         public FormTrackEditor()
         {
             InitializeComponent();
-
+            
             new MagnetWinForms.MagnetWinForms(this);
         }
 
@@ -33,8 +29,8 @@ namespace GroundControl
         private void listTracks_DragDrop(object sender, DragEventArgs e)
         {
             // Get drop index
-            Point point = listTracks.PointToClient(new Point(e.X, e.Y));
-            var index = this.listTracks.InsertionMark.NearestIndex(point);
+            var point = listTracks.PointToClient(new Point(e.X, e.Y));
+            var index = listTracks.InsertionMark.NearestIndex(point);
             
             // Get the list of items to drop
             var items = e.Data.GetData(typeof(ListViewItem[])) as ListViewItem[];
@@ -43,8 +39,7 @@ namespace GroundControl
             items = (index > items[0].Index) ? items : items.Reverse().ToArray();
 
             // Fire before change notification
-            if (BeforeChange != null)
-                BeforeChange(this, null);
+            BeforeChange?.Invoke(this, null);
 
             foreach (var item in items)
             {
@@ -58,8 +53,7 @@ namespace GroundControl
             }
 
             // Fire tracks change notification
-            if (TracksChanged != null)
-                TracksChanged(this, null);
+            TracksChanged?.Invoke(this, null);
         }
 
         private void listTracks_MouseMove(object sender, MouseEventArgs e)
@@ -68,10 +62,10 @@ namespace GroundControl
             if (e.Button == MouseButtons.Left)
             {
                 // Anything selected?
-                if ((listTracks.SelectedItems == null)  || (listTracks.SelectedItems.Count == 0))
+                if (listTracks.SelectedItems.Count == 0)
                     return;
 
-                this.listTracks.DoDragDrop(listTracks.SelectedItems.Cast<ListViewItem>().ToArray(), DragDropEffects.Move);
+                listTracks.DoDragDrop(listTracks.SelectedItems.Cast<ListViewItem>().ToArray(), DragDropEffects.Move);
             }
         }
 
@@ -93,8 +87,7 @@ namespace GroundControl
             m_Tracks[e.Index].Visible = e.NewValue == CheckState.Checked;
 
             // Fire tracks change notification
-            if (TracksChanged != null)
-                TracksChanged(this, null);
+            TracksChanged?.Invoke(this, null);
         }
 
         private void listTracks_Resize(object sender, EventArgs e)
@@ -108,19 +101,18 @@ namespace GroundControl
             if (e.KeyCode == Keys.Delete)
             {
                 // Is there anything selected?
-                if ((listTracks.SelectedItems != null) && (listTracks.SelectedItems.Count > 0))
+                if (listTracks.SelectedItems.Count > 0)
                 {
                     // Compose message
                     var msgText = "Delete ";
-                    msgText += (listTracks.SelectedItems.Count == 1) ? (listTracks.SelectedItems[0].Tag as TrackInfo).Name : listTracks.SelectedItems.Count + " Tracks";
+                    msgText += (listTracks.SelectedItems.Count == 1) ? ((TrackInfo)listTracks.SelectedItems[0].Tag).Name : listTracks.SelectedItems.Count + " Tracks";
                     msgText += "?";
 
                     // Ask user
-                    if (MessageBox.Show(this, msgText, "Confirm Delete", MessageBoxButtons.OKCancel, MessageBoxIcon.Warning) == DialogResult.OK)
+                    if (MessageBox.Show(this, msgText, @"Confirm Delete", MessageBoxButtons.OKCancel, MessageBoxIcon.Warning) == DialogResult.OK)
                     {
                         // Fire before change notification
-                        if (BeforeChange != null)
-                            BeforeChange(this, null);
+                        BeforeChange?.Invoke(this, null);
 
                         // Remove items
                         var itemsToRemove = listTracks.SelectedItems.Cast<ListViewItem>().ToList();
@@ -131,8 +123,7 @@ namespace GroundControl
                         }
 
                         // Fire tracks change notification
-                        if (TracksRemoved != null)
-                            TracksRemoved(this, null);
+                        TracksRemoved?.Invoke(this, null);
 
                     }
                 }
@@ -146,15 +137,13 @@ namespace GroundControl
             if (!string.IsNullOrWhiteSpace(e.Label))
             {
                 // Fire before change notification
-                if (BeforeChange != null)
-                    BeforeChange(this, null);
+                BeforeChange?.Invoke(this, null);
 
                 // Assign edited value back to track
-                (listTracks.Items[e.Item].Tag as TrackInfo).Name = e.Label;
+                ((TrackInfo)listTracks.Items[e.Item].Tag).Name = e.Label;
 
                 // Fire tracks change notification
-                if (TracksChanged != null)
-                    TracksChanged(this, null);
+                TracksChanged?.Invoke(this, null);
             }
         }
 
