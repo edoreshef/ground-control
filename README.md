@@ -2,7 +2,7 @@ Ground Control
 ==============
 Ground Control is a Windows sync tracker (server side only) for the GNU Rocket editor.  
 The editor is C# written and it allows lots of nice little features.
-![](http://bit.ly/1HzbMaJ)
+![](https://dl.dropboxusercontent.com/u/32077444/GroundControl.png)
 
 Installing
 ----------
@@ -14,7 +14,7 @@ Features
 --------
 Ground Control is has a similar features set to kusma/GNU Rocket project.  
 However, it includes several improvements:
-- Easier keyboard navigation and editing
+- Quick and easy keyboard navigation and editing
 - Side-by-side audio waveform view
 - Current Track value plot
 - Overview display and navigation
