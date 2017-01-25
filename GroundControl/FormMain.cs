@@ -816,23 +816,26 @@ namespace GroundControl
                     values[y] = track.GetValue(ViewYToRow((float)y));
 
                 // Find data range (so we can scale it to view)
-                var minValue = track.Keys.Min(t => t.Value);
-                var maxValue = track.Keys.Max(t => t.Value);
-                var delta = maxValue - minValue;
-
-                // Make sure we have a value range
-                if (delta > float.Epsilon)
+                if (track.Keys.Count > 0)
                 {
-                    // Find Scale-to-view transformation
-                    var clientWidth = pnlAudioView.ClientRectangle.Width;
-                    var distFromEdge = clientWidth * 0.2f;
-                    var scale = (pnlAudioView.ClientRectangle.Width - distFromEdge * 2) / delta;
+                    var minValue = track.Keys.Min(t => t.Value);
+                    var maxValue = track.Keys.Max(t => t.Value);
+                    var delta = maxValue - minValue;
 
-                    // Draw Graph
-                    for (var y = 1; y < clientHeight; y++)
-                        e.Graphics.DrawLine(Pens.Red,
-                            distFromEdge + (values[y - 1] - minValue)*scale, y - 1,
-                            distFromEdge + (values[y    ] - minValue)*scale, y);
+                    // Make sure we have a value range
+                    if (delta > float.Epsilon)
+                    {
+                        // Find Scale-to-view transformation
+                        var clientWidth = pnlAudioView.ClientRectangle.Width;
+                        var distFromEdge = clientWidth * 0.2f;
+                        var scale = (pnlAudioView.ClientRectangle.Width - distFromEdge * 2) / delta;
+
+                        // Draw Graph
+                        for (var y = 1; y < clientHeight; y++)
+                            e.Graphics.DrawLine(Pens.Red,
+                                distFromEdge + (values[y - 1] - minValue) * scale, y - 1,
+                                distFromEdge + (values[y] - minValue) * scale, y);
+                    }
                 }
             }
 
