@@ -19,10 +19,10 @@ namespace GroundControl
     {
         // global zoom factor, change using ctrl+shift+mouse wheel
         private float m_ScaleFactor = 1;
-        private const int Column0Width = 100;
-        private const int ColumnWidth = 70;
-        private const int Row0Height = 25;
-        private const int RowHeight = 15;
+        private int Column0Width => (int)(100  * m_ScaleFactor);
+        private int ColumnWidth => (int)(70  * m_ScaleFactor);
+        private int Row0Height => (int)(25  * m_ScaleFactor);
+        private int RowHeight => (int)(15 * m_ScaleFactor);
         private const int InterpolationBarWidth = 3;
 
         // Document related
@@ -193,17 +193,31 @@ namespace GroundControl
         {
             m_MousePressed = false;
         }
-
+        
         private void pnlDraw_MouseWheel(object sender, MouseEventArgs e)
         {
             // Select key type
             var keyType = (e.Delta > 0) ? Keys.Up : Keys.Down;
             if (ModifierKeys.HasFlag(Keys.Control))
-                keyType = (e.Delta > 0) ? Keys.Left : Keys.Right;
+            {
+                if (ModifierKeys.HasFlag(Keys.Shift))
+                {
+                    ChangeScaleFactor(e.Delta > 0);
+                    return;
+                }
+                else 
+                    keyType = (e.Delta > 0) ? Keys.Left : Keys.Right;
+            }
 
             // Simulate presses
             for (int i = Math.Abs(e.Delta / 120); i > 0; i--)
                 pnlDraw_KeyDown(this, new KeyEventArgs(keyType));
+        }
+
+        private void ChangeScaleFactor(bool more)
+        {
+            m_ScaleFactor = Math.Min(10, Math.Max(0.1f, m_ScaleFactor * (more ? 1.1f : 0.9f)));
+            Refresh();
         }
 
         private void pnlDraw_KeyDown(object sender, KeyEventArgs e)
@@ -608,10 +622,10 @@ namespace GroundControl
         private void pnlDraw_Paint(object sender, PaintEventArgs e)
         {
             var g = e.Graphics;
-            var titleFont = new Font("Courier New", 8, FontStyle.Regular);
-            var rowFont = new Font("Courier New", 10, FontStyle.Bold);
-            var keysTipFont = new Font("Courier New", 8, FontStyle.Bold);
-            var bookmarkFont = new Font("Tahoma", 7, FontStyle.Regular);
+            var titleFont = new Font("Consolas", 8 * m_ScaleFactor, FontStyle.Regular);
+            var rowFont = new Font("Consolas", 10 * m_ScaleFactor, FontStyle.Bold);
+            var keysTipFont = new Font("Consolas", 8 * m_ScaleFactor, FontStyle.Bold);
+            var bookmarkFont = new Font("Tahoma", 7 * m_ScaleFactor, FontStyle.Regular);
             
             var sfNear = new StringFormat() { Alignment = StringAlignment.Near, LineAlignment = StringAlignment.Center };
             var sfFar = new StringFormat() { Alignment = StringAlignment.Far, LineAlignment = StringAlignment.Center };
@@ -644,7 +658,7 @@ namespace GroundControl
 
             // Compute visible top/bottom rows
             m_ViewTopRowNr = (m_ViewTopLeftOffset.Y) / RowHeight;
-            m_ViewBotRowNr = (m_ViewTopLeftOffset.Y + pnlDraw.ClientSize.Height - Row0Height) / RowHeight;
+            m_ViewBotRowNr = (m_ViewTopLeftOffset.Y + pnlDraw.ClientSize.Height - Row0Height) /  RowHeight;
 
             // Trim visible rows by total row count
             m_ViewTopRowNr = Math.Min(m_ViewTopRowNr, m_RowsCount);
@@ -671,11 +685,6 @@ namespace GroundControl
                 if (iRow == m_Cursor.Y)
                     g.FillRectangle(new SolidBrush(Utils.RGB(0xFFFFFF)), CellRect(m_Cursor.X, iRow).Expand(bottom: 1));
             }
-
-            // Draw column0 header 
-            var titleRect = CellRect(-1, -1);
-            var titleBrush = new SolidBrush(Utils.RGB(0x00));
-            g.FillRectangle(titleBrush, titleRect);
 
             // Build formatting string
             var format = m_Project.TimeFormat;
@@ -711,6 +720,11 @@ namespace GroundControl
                     g.DrawString(m_KeysInRow[iRow].Count.ToString(), keysTipFont, Brushes.Black, keyCountRect.Pan(top:1), sfCenter);
                 }
             }
+            
+            // Draw column0 header on top of overlapping row numbers, caused by zoom factor rounding
+            var titleRect = CellRect(-1, -1);
+            var titleBrush = new SolidBrush(m_Palette.Background);
+            g.FillRectangle(titleBrush, titleRect);
 
             // Draw bookmarks
             foreach (var bookmark in m_Project.Bookmarks)
@@ -1892,6 +1906,22 @@ namespace GroundControl
                 vScrollBar1.Value = Math.Max(0, (int)(centerRow    * RowHeight   - yOffset));
                 hScrollBar1.Value = Math.Max(0, (int)(centerColumn * ColumnWidth - xOffset));
             }
+        }
+
+        private void zoomToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            ChangeScaleFactor(true);
+        }
+
+        private void zoomToolStripMenuItem1_Click(object sender, EventArgs e)
+        {
+            ChangeScaleFactor(false);
+        }
+
+        private void resetZoomToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            m_ScaleFactor = 1;
+            Refresh();
         }
     }
 }
