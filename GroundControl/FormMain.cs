@@ -205,8 +205,7 @@ namespace GroundControl
                     ChangeScaleFactor(e.Delta > 0);
                     return;
                 }
-                else 
-                    keyType = (e.Delta > 0) ? Keys.Left : Keys.Right;
+                keyType = (e.Delta > 0) ? Keys.Left : Keys.Right;
             }
 
             // Simulate presses
@@ -619,6 +618,7 @@ namespace GroundControl
 
         #region Drawing
 
+        private Palette m_Palette = new Palette();
         private void pnlDraw_Paint(object sender, PaintEventArgs e)
         {
             var g = e.Graphics;
@@ -634,9 +634,9 @@ namespace GroundControl
             var interColors = new[] 
             {
                 null, 
-                new Pen(Color.Red, 3),
-                new Pen(Utils.RGB(0x69FF24), 3),
-                new Pen(Utils.RGB(0x2491FF), 3)
+                new Pen(m_Palette.InterpolationLinear, 3), // linear
+                new Pen(m_Palette.InterpolationSmooth, 3), // smooth
+                new Pen(m_Palette.InterpolationRamp, 3) // ramp
             };
 
             // Compute grid size
@@ -669,13 +669,13 @@ namespace GroundControl
             for (var iRow = m_ViewTopRowNr; iRow < m_ViewBotRowNr; iRow++)
             {
                 // Select row back color
-                var color = (iRow % 2) == 0 ? Utils.Gray(10) : Utils.Gray(0);
+                var color = (iRow % 2) == 0 ? m_Palette.BackgroundLight : m_Palette.Background;
                 if (iRow % 8 == 0)
-                    color = Utils.Gray(25);
+                    color = m_Palette.BackgroundLighter;
 
                 // Is it the "selected" row?
                 if (iRow == m_Cursor.Y)
-                    color = Utils.Gray(60);
+                    color = m_Palette.BackgroundSelected;
 
                 // Draw rect 
                 var rowBGRect = CellRect(-1, iRow, columnsCount + 1, 1).SetWidthMoveRight(pnlDraw.ClientSize.Width).Expand(bottom: 1);
@@ -683,7 +683,7 @@ namespace GroundControl
 
                 // Background of "m_Cursor" cell
                 if (iRow == m_Cursor.Y)
-                    g.FillRectangle(new SolidBrush(Utils.RGB(0xFFFFFF)), CellRect(m_Cursor.X, iRow).Expand(bottom: 1));
+                    g.FillRectangle(new SolidBrush(m_Palette.BackgroundSelectedLight), CellRect(m_Cursor.X, iRow).Expand(bottom: 1));
             }
 
             // Build formatting string
@@ -730,9 +730,9 @@ namespace GroundControl
             foreach (var bookmark in m_Project.Bookmarks)
             {
                 var bookmarkRect = CellRect(-1, bookmark.Row, 0, 1).Expand(right: RowHeight).Expand(right: -1, bottom: -1).Pan(right: 2);
-                g.FillEllipse(Brushes.DarkRed, bookmarkRect);
+                g.FillEllipse(new SolidBrush(m_Palette.InterpolationLinear), bookmarkRect);
                 g.DrawEllipse(Pens.Red, bookmarkRect);
-                g.DrawString(bookmark.Number.ToString(), bookmarkFont, Brushes.White, bookmarkRect.Pan(bottom: 1, right: 0), sfCenter);
+                g.DrawString(bookmark.Number.ToString(), bookmarkFont, Brushes.White, bookmarkRect.Pan(bottom: 1, right: 0, left:1), sfCenter);
             }
 
             // Draw column0 vertical seperators
@@ -852,7 +852,7 @@ namespace GroundControl
 
                         // Draw Graph
                         for (var y = 1; y < clientHeight; y++)
-                            e.Graphics.DrawLine(Pens.Red,
+                            e.Graphics.DrawLine( new Pen(m_Palette.InterpolationLinear),
                                 distFromEdge + (values[y - 1] - minValue) * scale, y - 1,
                                 distFromEdge + (values[y] - minValue) * scale, y);
                     }
@@ -1835,9 +1835,9 @@ namespace GroundControl
             var interColors = new[]
             {
                 new SolidBrush(Color.White),
-                new SolidBrush(Color.Red),
-                new SolidBrush(Utils.RGB(0x69FF24)),
-                new SolidBrush(Utils.RGB(0x2491FF))
+                new SolidBrush(m_Palette.InterpolationLinear),
+                new SolidBrush( m_Palette.InterpolationSmooth),
+                new SolidBrush(m_Palette.InterpolationRamp)
             };
 
             // compute view scales
