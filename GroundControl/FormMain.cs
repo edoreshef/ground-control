@@ -17,6 +17,8 @@ namespace GroundControl
 {
     public partial class MainForm : Form
     {
+        // global zoom factor, change using ctrl+shift+mouse wheel
+        private float m_ScaleFactor = 1;
         private const int Column0Width = 100;
         private const int ColumnWidth = 70;
         private const int Row0Height = 25;
@@ -116,6 +118,10 @@ namespace GroundControl
             // Load MRU options
             m_MruMenu = new MruStripMenuInline(fileToolStripMenuItem, recentToolStripMenuItem, OnMruFile, @"SOFTWARE\Rocket\Rocket\MRU", 16);
             m_MruMenu.LoadFromRegistry();
+            for (int i = 0; i < m_MruMenu.NumEntries; i++)
+            {
+                ((ToolStripMenuItem)m_MruMenu.MenuItems[m_MruMenu.StartIndex + i]).ShortcutKeys = Keys.Control | Keys.Alt | Keys.D1 + i;
+            }
 
             // Create Track editor form
             m_TrackEditor = new FormTrackEditor();
@@ -292,13 +298,13 @@ namespace GroundControl
             }
 
             // Bookmarks
-            if (((e.Modifiers & Keys.Control) != 0) && (Utils.NumKeyToInt.ContainsKey(e.KeyCode)))
+            if (((e.Modifiers & Keys.Control) != 0) && (Utils.IsNumKey(e.KeyCode)))
             {
                 // Set?
                 if ((e.Modifiers & Keys.Shift) != 0)
-                    SetBookmark(Utils.NumKeyToInt[e.KeyCode]);
+                    SetBookmark(e.KeyCode - Keys.D0);
                 else
-                    GotoBookmark(Utils.NumKeyToInt[e.KeyCode]);
+                    GotoBookmark(e.KeyCode - Keys.D0);
             }
 
             if (e.KeyCode == Keys.K) SetBookmark(-1);
