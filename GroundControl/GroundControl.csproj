@@ -50,9 +50,6 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="..\..\magnet-winforms\MagnetWinForms.cs">
-      <Link>MagnetWinForms.cs</Link>
-    </Compile>
     <Compile Include="DataTypes.cs" />
     <Compile Include="FormSettings.cs">
       <SubType>Form</SubType>
@@ -72,6 +69,7 @@
     <Compile Include="FormTrackEditor.Designer.cs">
       <DependentUpon>FormTrackEditor.cs</DependentUpon>
     </Compile>
+    <Compile Include="MagnetWinForms.cs" />
     <Compile Include="MruStripMenu.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
