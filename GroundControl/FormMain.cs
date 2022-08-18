@@ -121,10 +121,7 @@ namespace GroundControl
             // Load MRU options
             m_MruMenu = new MruStripMenuInline(fileToolStripMenuItem, recentToolStripMenuItem, OnMruFile, @"SOFTWARE\Rocket\Rocket\MRU", 16);
             m_MruMenu.LoadFromRegistry();
-            for (int i = 0; i < m_MruMenu.NumEntries; i++)
-            {
-                ((ToolStripMenuItem)m_MruMenu.MenuItems[m_MruMenu.StartIndex + i]).ShortcutKeys = Keys.Control | Keys.Alt | Keys.D1 + i;
-            }
+            m_MruMenu.AssignShortcutKeys();
 
             // Create Track editor form
             m_TrackEditor = new FormTrackEditor();
@@ -1358,6 +1355,7 @@ namespace GroundControl
                     // Update MRU
                     m_MruMenu.AddFile(filename);
                     m_MruMenu.SaveToRegistry();
+                    m_MruMenu.AssignShortcutKeys();
 
                     // Clear undo buffer
                     m_UndoSnapIndex = -1;

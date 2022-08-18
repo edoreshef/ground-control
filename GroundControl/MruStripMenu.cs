@@ -787,6 +787,14 @@ namespace JWC
 		}
 
 		#endregion
+
+		public void AssignShortcutKeys()
+		{
+			for (int i = 0; i < NumEntries; i++)
+			{
+				((ToolStripMenuItem)MenuItems[i + StartIndex]).ShortcutKeys = Keys.Control | Keys.Alt | Keys.D1 + i;
+			}
+		}
 	}
 
 	/// <summary>
