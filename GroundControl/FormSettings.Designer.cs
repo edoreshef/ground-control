@@ -49,6 +49,8 @@
             this.comboTimeFormatting = new System.Windows.Forms.ComboBox();
             this.lblsTotalRows = new System.Windows.Forms.Label();
             this.udRows = new System.Windows.Forms.NumericUpDown();
+            this.checkBoxLightTheme = new System.Windows.Forms.CheckBox();
+            this.label4 = new System.Windows.Forms.Label();
             ((System.ComponentModel.ISupportInitialize)(this.udBPM)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.udRowsPerBeat)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.udTimeOffset)).BeginInit();
@@ -216,23 +218,25 @@
             // 
             // btnCancel
             // 
+            this.btnCancel.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
             this.btnCancel.DialogResult = System.Windows.Forms.DialogResult.Cancel;
-            this.btnCancel.Location = new System.Drawing.Point(10, 279);
+            this.btnCancel.Location = new System.Drawing.Point(7, 318);
             this.btnCancel.Margin = new System.Windows.Forms.Padding(5);
             this.btnCancel.Name = "btnCancel";
             this.btnCancel.Size = new System.Drawing.Size(99, 34);
-            this.btnCancel.TabIndex = 8;
+            this.btnCancel.TabIndex = 9;
             this.btnCancel.Text = "&Cancel";
             this.btnCancel.UseVisualStyleBackColor = true;
             // 
             // btnOK
             // 
+            this.btnOK.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
             this.btnOK.DialogResult = System.Windows.Forms.DialogResult.OK;
-            this.btnOK.Location = new System.Drawing.Point(116, 279);
+            this.btnOK.Location = new System.Drawing.Point(117, 318);
             this.btnOK.Margin = new System.Windows.Forms.Padding(5);
             this.btnOK.Name = "btnOK";
             this.btnOK.Size = new System.Drawing.Size(99, 34);
-            this.btnOK.TabIndex = 7;
+            this.btnOK.TabIndex = 8;
             this.btnOK.Text = "&OK";
             this.btnOK.UseVisualStyleBackColor = true;
             this.btnOK.Click += new System.EventHandler(this.btnOK_Click);
@@ -306,6 +310,26 @@
             0,
             0});
             // 
+            // checkBoxLightTheme
+            // 
+            this.checkBoxLightTheme.AutoSize = true;
+            this.checkBoxLightTheme.Location = new System.Drawing.Point(200, 274);
+            this.checkBoxLightTheme.Name = "checkBoxLightTheme";
+            this.checkBoxLightTheme.Size = new System.Drawing.Size(15, 14);
+            this.checkBoxLightTheme.TabIndex = 7;
+            this.checkBoxLightTheme.TextAlign = System.Drawing.ContentAlignment.MiddleRight;
+            this.checkBoxLightTheme.UseVisualStyleBackColor = true;
+            // 
+            // label4
+            // 
+            this.label4.AutoSize = true;
+            this.label4.Location = new System.Drawing.Point(7, 274);
+            this.label4.Margin = new System.Windows.Forms.Padding(3, 0, 3, 15);
+            this.label4.Name = "label4";
+            this.label4.Size = new System.Drawing.Size(66, 13);
+            this.label4.TabIndex = 16;
+            this.label4.Text = "Light Theme";
+            // 
             // FormSettings
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
@@ -313,7 +337,9 @@
             this.AutoSize = true;
             this.AutoSizeMode = System.Windows.Forms.AutoSizeMode.GrowAndShrink;
             this.CancelButton = this.btnCancel;
-            this.ClientSize = new System.Drawing.Size(229, 328);
+            this.ClientSize = new System.Drawing.Size(229, 366);
+            this.Controls.Add(this.label4);
+            this.Controls.Add(this.checkBoxLightTheme);
             this.Controls.Add(this.lblsTotalRows);
             this.Controls.Add(this.udRows);
             this.Controls.Add(this.comboTimeFormatting);
@@ -373,5 +399,7 @@
         private System.Windows.Forms.ComboBox comboTimeFormatting;
         private System.Windows.Forms.Label lblsTotalRows;
         private System.Windows.Forms.NumericUpDown udRows;
+        private System.Windows.Forms.CheckBox checkBoxLightTheme;
+        private System.Windows.Forms.Label label4;
     }
 }

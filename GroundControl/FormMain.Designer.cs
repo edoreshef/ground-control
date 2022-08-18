@@ -288,7 +288,7 @@
             this.pnlDraw.Dock = System.Windows.Forms.DockStyle.Fill;
             this.pnlDraw.Location = new System.Drawing.Point(0, 0);
             this.pnlDraw.Name = "pnlDraw";
-            this.pnlDraw.Size = new System.Drawing.Size(499, 375);
+            this.pnlDraw.Size = new System.Drawing.Size(654, 375);
             this.pnlDraw.TabIndex = 2;
             this.pnlDraw.TabStop = true;
             this.pnlDraw.Paint += new System.Windows.Forms.PaintEventHandler(this.pnlDraw_Paint);
@@ -311,7 +311,7 @@
             // splitter2
             // 
             this.splitter2.Dock = System.Windows.Forms.DockStyle.Right;
-            this.splitter2.Location = new System.Drawing.Point(499, 0);
+            this.splitter2.Location = new System.Drawing.Point(654, 0);
             this.splitter2.Name = "splitter2";
             this.splitter2.Size = new System.Drawing.Size(4, 375);
             this.splitter2.TabIndex = 4;
@@ -321,9 +321,9 @@
             // 
             this.pnlAudioView.BackColor = System.Drawing.Color.Black;
             this.pnlAudioView.Dock = System.Windows.Forms.DockStyle.Right;
-            this.pnlAudioView.Location = new System.Drawing.Point(503, 0);
+            this.pnlAudioView.Location = new System.Drawing.Point(658, 0);
             this.pnlAudioView.Name = "pnlAudioView";
-            this.pnlAudioView.Size = new System.Drawing.Size(219, 375);
+            this.pnlAudioView.Size = new System.Drawing.Size(64, 375);
             this.pnlAudioView.TabIndex = 4;
             this.pnlAudioView.TabStop = true;
             this.pnlAudioView.SizeChanged += new System.EventHandler(this.pnlAudioView_SizeChanged);

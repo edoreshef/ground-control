@@ -1,8 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Xml.Serialization;
 
 namespace GroundControl
@@ -27,6 +24,9 @@ namespace GroundControl
 
         [XmlAttribute("rows")]
         public int Rows = 4096;
+        
+        [XmlElement("LightTheme")]
+        public bool LightTheme;
 
         [XmlArrayItem("track", typeof(TrackInfo))]
         [XmlArray("tracks")]

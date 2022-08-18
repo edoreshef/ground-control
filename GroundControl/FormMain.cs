@@ -24,6 +24,7 @@ namespace GroundControl
         private int Row0Height => (int)(25  * m_ScaleFactor);
         private int RowHeight => (int)(15 * m_ScaleFactor);
         private const int InterpolationBarWidth = 3;
+        private Palette m_Palette = Palette.Dark;
 
         // Document related
         private string m_ProjectFilename;
@@ -88,7 +89,9 @@ namespace GroundControl
         public MainForm()
         {
             InitializeComponent();
-
+            
+            LoadTheme();
+            
             // Make sure handle is created
             CreateHandle();
 
@@ -618,7 +621,6 @@ namespace GroundControl
 
         #region Drawing
 
-        private Palette m_Palette = new Palette();
         private void pnlDraw_Paint(object sender, PaintEventArgs e)
         {
             var g = e.Graphics;
@@ -669,9 +671,9 @@ namespace GroundControl
             for (var iRow = m_ViewTopRowNr; iRow < m_ViewBotRowNr; iRow++)
             {
                 // Select row back color
-                var color = (iRow % 2) == 0 ? m_Palette.BackgroundLight : m_Palette.Background;
+                var color = (iRow % 2) == 0 ? m_Palette.BackgroundAlt : m_Palette.Background;
                 if (iRow % 8 == 0)
-                    color = m_Palette.BackgroundLighter;
+                    color = m_Palette.BackgroundAlt2;
 
                 // Is it the "selected" row?
                 if (iRow == m_Cursor.Y)
@@ -697,7 +699,7 @@ namespace GroundControl
             for (var iRow = m_ViewTopRowNr; iRow < m_ViewBotRowNr; iRow++)
             {
                 // Select row back color
-                var color = (iRow % 8 == 0) ? Utils.Gray(200) : Utils.Gray(150);
+                var color = (iRow % 8 == 0) ? m_Palette.TextColorAlt : m_Palette.TextColorAlt2;
 
                 // Draw row number
                 var rowsPerSecond = m_Project.BPM * m_Project.RowsPerBeat / 60.0;
@@ -735,7 +737,7 @@ namespace GroundControl
                 g.DrawString(bookmark.Number.ToString(), bookmarkFont, Brushes.White, bookmarkRect.Pan(bottom: 1, right: 0, left:1), sfCenter);
             }
 
-            // Draw column0 vertical seperators
+            // Draw column0 vertical separators
             g.ResetClip();
             g.DrawLine(new Pen(Utils.Gray(180)), CellRect(-1, -1, 0, m_RowsCount + 1).Pan(right: Column0Width - 1));
 
@@ -748,23 +750,23 @@ namespace GroundControl
                 if ((ColumnToViewX(iColumn + 1) < 0) || (ColumnToViewX(iColumn) > pnlDraw.ClientSize.Width))
                     continue;
 
-                // Draw vertical seperators
-                g.DrawLine(new Pen(Utils.ARGB(0x20ffffff)), CellRect(iColumn + 1, -1, 0, m_RowsCount));
+                // Draw vertical separators
+                g.DrawLine(new Pen(m_Palette.BackgroundAlt2), CellRect(iColumn + 1, -1, 0, m_RowsCount));
 
                 // Draw column header 
                 titleRect = CellRect(iColumn, -1).Expand(left: -1);
                 g.FillRectangle(titleBrush, titleRect);
 
                 // Draw column name
-                g.DrawString(column.Name, titleFont, Brushes.White, titleRect.Expand(top: +0, left: -3), sfNear);
+                g.DrawString(column.Name, titleFont, m_Palette.TextBrush, titleRect.Expand(top: +0, left: -3), sfNear);
             }
 
-            // Draw last vertical seperator
+            // Draw last vertical separator
             g.ResetClip();
-            g.DrawLine(new Pen(Utils.ARGB(0x20ffffff)), CellRect(columnsCount, -1, 0, m_RowsCount));
+            g.DrawLine(new Pen(m_Palette.BackgroundAlt2), CellRect(columnsCount, -1, 0, m_RowsCount));
 
-            // Draw header horizontal seperator
-            g.DrawLine(new Pen(Utils.Gray(180)), new Rectangle(0, Row0Height, pnlDraw.ClientSize.Width, 0));
+            // Draw header horizontal separator
+            g.DrawLine(new Pen(m_Palette.BackgroundAlt2), new Rectangle(0, Row0Height, pnlDraw.ClientSize.Width, 0));
 
             // Draw column keys
             g.Clip = new Region(CellRect(-1, -1, columnsCount + 1, m_RowsCount).Expand(top: -Row0Height, left: -Column0Width));
@@ -781,7 +783,7 @@ namespace GroundControl
                     var key = column.Keys[iKey];
 
                     // Select color
-                    var color = (key.Row == m_Cursor.Y && iColumn == m_Cursor.X) ? Brushes.Black : Brushes.White;
+                    var color = (key.Row == m_Cursor.Y && iColumn == m_Cursor.X) ? m_Palette.SelectedTextBrush : m_Palette.TextBrush;
 
                     // Draw value
                     g.DrawString(key.Value.ToString("0.00", CultureInfo.InvariantCulture), rowFont, color, CellRect(iColumn, key.Row).Expand(right: -4), sfFar);
@@ -862,7 +864,7 @@ namespace GroundControl
 
             // Draw cursor
             var cursorViewY = RowToViewY(m_Cursor.Y) + RowHeight / 2;
-            e.Graphics.DrawLine(Pens.Yellow, 0, cursorViewY, pnlAudioView.ClientSize.Width, cursorViewY);
+            e.Graphics.DrawLine(m_Palette.PlayheadPen, 0, cursorViewY, pnlAudioView.ClientSize.Width, cursorViewY);
         }
 
         #endregion
@@ -1350,6 +1352,8 @@ namespace GroundControl
 
                     // Rebuild all key maps
                     RebuildKeyMaps();
+                    
+                    LoadTheme();
 
                     // Update MRU
                     m_MruMenu.AddFile(filename);
@@ -1797,9 +1801,18 @@ namespace GroundControl
                 // Rebuild all keys maps
                 RebuildKeyMaps();
 
+                LoadTheme();
+
                 // Reload audio
                 LoadAudio();
             }
+        }
+        private void LoadTheme()
+        {
+            m_Palette = m_Project?.LightTheme == true ? Palette.Light : Palette.Dark;
+            pnlDraw.BackColor = m_Palette.Background;
+            pnlAudioView.BackColor = m_Palette.Background;
+            pnlVScroll.BackColor = m_Palette.Background;
         }
 
         private void trackManagerToolStripMenuItem_Click(object sender, EventArgs e)
@@ -1850,7 +1863,7 @@ namespace GroundControl
             for (var iCol = 0; iCol < m_ColumnToTrack.Count; iCol++)
             {
                 // Draw background
-                var color = iCol%2 == 0 ? Utils.Gray(20) : Utils.Gray(0);
+                var color = iCol%2 == 0 ? m_Palette.Background : m_Palette.BackgroundAlt;
                 g.FillRectangle(new SolidBrush(color), m_VScroll_YMargin + m_VSCroll_XScale*iCol, 0, m_VScroll_XMargin + m_VSCroll_XScale*iCol, clientHeight);
 
                 var track = m_ColumnToTrack[iCol];
@@ -1878,7 +1891,7 @@ namespace GroundControl
             var viewRect = Rectangle.FromLTRB(
                 m_VScroll_XMargin + m_VSCroll_XScale * leftCol,  (int)(m_VScroll_YMargin + m_VScroll_YScale * topRow),
                 m_VScroll_XMargin + m_VSCroll_XScale * rightCol, (int)(m_VScroll_YMargin + m_VScroll_YScale * botRow));
-            g.DrawRectangle(Pens.Yellow, viewRect);
+            g.DrawRectangle(m_Palette.PlayheadPen, viewRect);
         }
 
         private void panelVScroll_SizeChanged(object sender, EventArgs e)
