@@ -17,11 +17,14 @@ namespace GroundControl
 {
     public partial class MainForm : Form
     {
-        private const int Column0Width = 100;
-        private const int ColumnWidth = 70;
-        private const int Row0Height = 25;
-        private const int RowHeight = 15;
+        // global zoom factor, change using ctrl+shift+mouse wheel
+        private float m_ScaleFactor = 1;
+        private int Column0Width => (int)(100  * m_ScaleFactor);
+        private int ColumnWidth => (int)(70  * m_ScaleFactor);
+        private int Row0Height => (int)(25  * m_ScaleFactor);
+        private int RowHeight => (int)(15 * m_ScaleFactor);
         private const int InterpolationBarWidth = 3;
+        private Palette m_Palette = Palette.Dark;
 
         // Document related
         private string m_ProjectFilename;
@@ -86,7 +89,9 @@ namespace GroundControl
         public MainForm()
         {
             InitializeComponent();
-
+            
+            LoadTheme();
+            
             // Make sure handle is created
             CreateHandle();
 
@@ -116,6 +121,7 @@ namespace GroundControl
             // Load MRU options
             m_MruMenu = new MruStripMenuInline(fileToolStripMenuItem, recentToolStripMenuItem, OnMruFile, @"SOFTWARE\Rocket\Rocket\MRU", 16);
             m_MruMenu.LoadFromRegistry();
+            m_MruMenu.AssignShortcutKeys();
 
             // Create Track editor form
             m_TrackEditor = new FormTrackEditor();
@@ -187,17 +193,30 @@ namespace GroundControl
         {
             m_MousePressed = false;
         }
-
+        
         private void pnlDraw_MouseWheel(object sender, MouseEventArgs e)
         {
             // Select key type
             var keyType = (e.Delta > 0) ? Keys.Up : Keys.Down;
             if (ModifierKeys.HasFlag(Keys.Control))
+            {
+                if (ModifierKeys.HasFlag(Keys.Shift))
+                {
+                    ChangeScaleFactor(e.Delta > 0);
+                    return;
+                }
                 keyType = (e.Delta > 0) ? Keys.Left : Keys.Right;
+            }
 
             // Simulate presses
             for (int i = Math.Abs(e.Delta / 120); i > 0; i--)
                 pnlDraw_KeyDown(this, new KeyEventArgs(keyType));
+        }
+
+        private void ChangeScaleFactor(bool more)
+        {
+            m_ScaleFactor = Math.Min(10, Math.Max(0.1f, m_ScaleFactor * (more ? 1.1f : 0.9f)));
+            Refresh();
         }
 
         private void pnlDraw_KeyDown(object sender, KeyEventArgs e)
@@ -292,13 +311,13 @@ namespace GroundControl
             }
 
             // Bookmarks
-            if (((e.Modifiers & Keys.Control) != 0) && (Utils.NumKeyToInt.ContainsKey(e.KeyCode)))
+            if (((e.Modifiers & Keys.Control) != 0) && (Utils.IsNumKey(e.KeyCode)))
             {
                 // Set?
                 if ((e.Modifiers & Keys.Shift) != 0)
-                    SetBookmark(Utils.NumKeyToInt[e.KeyCode]);
+                    SetBookmark(e.KeyCode - Keys.D0);
                 else
-                    GotoBookmark(Utils.NumKeyToInt[e.KeyCode]);
+                    GotoBookmark(e.KeyCode - Keys.D0);
             }
 
             if (e.KeyCode == Keys.K) SetBookmark(-1);
@@ -602,10 +621,10 @@ namespace GroundControl
         private void pnlDraw_Paint(object sender, PaintEventArgs e)
         {
             var g = e.Graphics;
-            var titleFont = new Font("Courier New", 8, FontStyle.Regular);
-            var rowFont = new Font("Courier New", 10, FontStyle.Bold);
-            var keysTipFont = new Font("Courier New", 8, FontStyle.Bold);
-            var bookmarkFont = new Font("Tahoma", 7, FontStyle.Regular);
+            var titleFont = new Font("Consolas", 8 * m_ScaleFactor, FontStyle.Regular);
+            var rowFont = new Font("Consolas", 10 * m_ScaleFactor, FontStyle.Bold);
+            var keysTipFont = new Font("Consolas", 8 * m_ScaleFactor, FontStyle.Bold);
+            var bookmarkFont = new Font("Tahoma", 7 * m_ScaleFactor, FontStyle.Regular);
             
             var sfNear = new StringFormat() { Alignment = StringAlignment.Near, LineAlignment = StringAlignment.Center };
             var sfFar = new StringFormat() { Alignment = StringAlignment.Far, LineAlignment = StringAlignment.Center };
@@ -614,9 +633,9 @@ namespace GroundControl
             var interColors = new[] 
             {
                 null, 
-                new Pen(Color.Red, 3),
-                new Pen(Utils.RGB(0x69FF24), 3),
-                new Pen(Utils.RGB(0x2491FF), 3)
+                new Pen(m_Palette.InterpolationLinear, 3), // linear
+                new Pen(m_Palette.InterpolationSmooth, 3), // smooth
+                new Pen(m_Palette.InterpolationRamp, 3) // ramp
             };
 
             // Compute grid size
@@ -638,7 +657,7 @@ namespace GroundControl
 
             // Compute visible top/bottom rows
             m_ViewTopRowNr = (m_ViewTopLeftOffset.Y) / RowHeight;
-            m_ViewBotRowNr = (m_ViewTopLeftOffset.Y + pnlDraw.ClientSize.Height - Row0Height) / RowHeight;
+            m_ViewBotRowNr = (m_ViewTopLeftOffset.Y + pnlDraw.ClientSize.Height - Row0Height) /  RowHeight;
 
             // Trim visible rows by total row count
             m_ViewTopRowNr = Math.Min(m_ViewTopRowNr, m_RowsCount);
@@ -649,13 +668,13 @@ namespace GroundControl
             for (var iRow = m_ViewTopRowNr; iRow < m_ViewBotRowNr; iRow++)
             {
                 // Select row back color
-                var color = (iRow % 2) == 0 ? Utils.Gray(10) : Utils.Gray(0);
+                var color = (iRow % 2) == 0 ? m_Palette.BackgroundAlt : m_Palette.Background;
                 if (iRow % 8 == 0)
-                    color = Utils.Gray(25);
+                    color = m_Palette.BackgroundAlt2;
 
                 // Is it the "selected" row?
                 if (iRow == m_Cursor.Y)
-                    color = Utils.Gray(60);
+                    color = m_Palette.BackgroundSelected;
 
                 // Draw rect 
                 var rowBGRect = CellRect(-1, iRow, columnsCount + 1, 1).SetWidthMoveRight(pnlDraw.ClientSize.Width).Expand(bottom: 1);
@@ -663,13 +682,8 @@ namespace GroundControl
 
                 // Background of "m_Cursor" cell
                 if (iRow == m_Cursor.Y)
-                    g.FillRectangle(new SolidBrush(Utils.RGB(0xFFFFFF)), CellRect(m_Cursor.X, iRow).Expand(bottom: 1));
+                    g.FillRectangle(new SolidBrush(m_Palette.BackgroundSelectedLight), CellRect(m_Cursor.X, iRow).Expand(bottom: 1));
             }
-
-            // Draw column0 header 
-            var titleRect = CellRect(-1, -1);
-            var titleBrush = new SolidBrush(Utils.RGB(0x00));
-            g.FillRectangle(titleBrush, titleRect);
 
             // Build formatting string
             var format = m_Project.TimeFormat;
@@ -682,7 +696,7 @@ namespace GroundControl
             for (var iRow = m_ViewTopRowNr; iRow < m_ViewBotRowNr; iRow++)
             {
                 // Select row back color
-                var color = (iRow % 8 == 0) ? Utils.Gray(200) : Utils.Gray(150);
+                var color = (iRow % 8 == 0) ? m_Palette.TextColorAlt : m_Palette.TextColorAlt2;
 
                 // Draw row number
                 var rowsPerSecond = m_Project.BPM * m_Project.RowsPerBeat / 60.0;
@@ -705,17 +719,22 @@ namespace GroundControl
                     g.DrawString(m_KeysInRow[iRow].Count.ToString(), keysTipFont, Brushes.Black, keyCountRect.Pan(top:1), sfCenter);
                 }
             }
+            
+            // Draw column0 header on top of overlapping row numbers, caused by zoom factor rounding
+            var titleRect = CellRect(-1, -1);
+            var titleBrush = new SolidBrush(m_Palette.Background);
+            g.FillRectangle(titleBrush, titleRect);
 
             // Draw bookmarks
             foreach (var bookmark in m_Project.Bookmarks)
             {
                 var bookmarkRect = CellRect(-1, bookmark.Row, 0, 1).Expand(right: RowHeight).Expand(right: -1, bottom: -1).Pan(right: 2);
-                g.FillEllipse(Brushes.DarkRed, bookmarkRect);
+                g.FillEllipse(new SolidBrush(m_Palette.InterpolationLinear), bookmarkRect);
                 g.DrawEllipse(Pens.Red, bookmarkRect);
-                g.DrawString(bookmark.Number.ToString(), bookmarkFont, Brushes.White, bookmarkRect.Pan(bottom: 1, right: 0), sfCenter);
+                g.DrawString(bookmark.Number.ToString(), bookmarkFont, Brushes.White, bookmarkRect.Pan(bottom: 1, right: 0, left:1), sfCenter);
             }
 
-            // Draw column0 vertical seperators
+            // Draw column0 vertical separators
             g.ResetClip();
             g.DrawLine(new Pen(Utils.Gray(180)), CellRect(-1, -1, 0, m_RowsCount + 1).Pan(right: Column0Width - 1));
 
@@ -728,23 +747,23 @@ namespace GroundControl
                 if ((ColumnToViewX(iColumn + 1) < 0) || (ColumnToViewX(iColumn) > pnlDraw.ClientSize.Width))
                     continue;
 
-                // Draw vertical seperators
-                g.DrawLine(new Pen(Utils.ARGB(0x20ffffff)), CellRect(iColumn + 1, -1, 0, m_RowsCount));
+                // Draw vertical separators
+                g.DrawLine(new Pen(m_Palette.BackgroundAlt2), CellRect(iColumn + 1, -1, 0, m_RowsCount));
 
                 // Draw column header 
                 titleRect = CellRect(iColumn, -1).Expand(left: -1);
                 g.FillRectangle(titleBrush, titleRect);
 
                 // Draw column name
-                g.DrawString(column.Name, titleFont, Brushes.White, titleRect.Expand(top: +0, left: -3), sfNear);
+                g.DrawString(column.Name, titleFont, m_Palette.TextBrush, titleRect.Expand(top: +0, left: -3), sfNear);
             }
 
-            // Draw last vertical seperator
+            // Draw last vertical separator
             g.ResetClip();
-            g.DrawLine(new Pen(Utils.ARGB(0x20ffffff)), CellRect(columnsCount, -1, 0, m_RowsCount));
+            g.DrawLine(new Pen(m_Palette.BackgroundAlt2), CellRect(columnsCount, -1, 0, m_RowsCount));
 
-            // Draw header horizontal seperator
-            g.DrawLine(new Pen(Utils.Gray(180)), new Rectangle(0, Row0Height, pnlDraw.ClientSize.Width, 0));
+            // Draw header horizontal separator
+            g.DrawLine(new Pen(m_Palette.BackgroundAlt2), new Rectangle(0, Row0Height, pnlDraw.ClientSize.Width, 0));
 
             // Draw column keys
             g.Clip = new Region(CellRect(-1, -1, columnsCount + 1, m_RowsCount).Expand(top: -Row0Height, left: -Column0Width));
@@ -761,7 +780,7 @@ namespace GroundControl
                     var key = column.Keys[iKey];
 
                     // Select color
-                    var color = (key.Row == m_Cursor.Y && iColumn == m_Cursor.X) ? Brushes.Black : Brushes.White;
+                    var color = (key.Row == m_Cursor.Y && iColumn == m_Cursor.X) ? m_Palette.SelectedTextBrush : m_Palette.TextBrush;
 
                     // Draw value
                     g.DrawString(key.Value.ToString("0.00", CultureInfo.InvariantCulture), rowFont, color, CellRect(iColumn, key.Row).Expand(right: -4), sfFar);
@@ -832,7 +851,7 @@ namespace GroundControl
 
                         // Draw Graph
                         for (var y = 1; y < clientHeight; y++)
-                            e.Graphics.DrawLine(Pens.Red,
+                            e.Graphics.DrawLine( new Pen(m_Palette.InterpolationLinear),
                                 distFromEdge + (values[y - 1] - minValue) * scale, y - 1,
                                 distFromEdge + (values[y] - minValue) * scale, y);
                     }
@@ -842,7 +861,7 @@ namespace GroundControl
 
             // Draw cursor
             var cursorViewY = RowToViewY(m_Cursor.Y) + RowHeight / 2;
-            e.Graphics.DrawLine(Pens.Yellow, 0, cursorViewY, pnlAudioView.ClientSize.Width, cursorViewY);
+            e.Graphics.DrawLine(m_Palette.PlayheadPen, 0, cursorViewY, pnlAudioView.ClientSize.Width, cursorViewY);
         }
 
         #endregion
@@ -1330,10 +1349,13 @@ namespace GroundControl
 
                     // Rebuild all key maps
                     RebuildKeyMaps();
+                    
+                    LoadTheme();
 
                     // Update MRU
                     m_MruMenu.AddFile(filename);
                     m_MruMenu.SaveToRegistry();
+                    m_MruMenu.AssignShortcutKeys();
 
                     // Clear undo buffer
                     m_UndoSnapIndex = -1;
@@ -1777,9 +1799,18 @@ namespace GroundControl
                 // Rebuild all keys maps
                 RebuildKeyMaps();
 
+                LoadTheme();
+
                 // Reload audio
                 LoadAudio();
             }
+        }
+        private void LoadTheme()
+        {
+            m_Palette = m_Project?.LightTheme == true ? Palette.Light : Palette.Dark;
+            pnlDraw.BackColor = m_Palette.Background;
+            pnlAudioView.BackColor = m_Palette.Background;
+            pnlVScroll.BackColor = m_Palette.Background;
         }
 
         private void trackManagerToolStripMenuItem_Click(object sender, EventArgs e)
@@ -1815,9 +1846,9 @@ namespace GroundControl
             var interColors = new[]
             {
                 new SolidBrush(Color.White),
-                new SolidBrush(Color.Red),
-                new SolidBrush(Utils.RGB(0x69FF24)),
-                new SolidBrush(Utils.RGB(0x2491FF))
+                new SolidBrush(m_Palette.InterpolationLinear),
+                new SolidBrush( m_Palette.InterpolationSmooth),
+                new SolidBrush(m_Palette.InterpolationRamp)
             };
 
             // compute view scales
@@ -1830,7 +1861,7 @@ namespace GroundControl
             for (var iCol = 0; iCol < m_ColumnToTrack.Count; iCol++)
             {
                 // Draw background
-                var color = iCol%2 == 0 ? Utils.Gray(20) : Utils.Gray(0);
+                var color = iCol%2 == 0 ? m_Palette.Background : m_Palette.BackgroundAlt;
                 g.FillRectangle(new SolidBrush(color), m_VScroll_YMargin + m_VSCroll_XScale*iCol, 0, m_VScroll_XMargin + m_VSCroll_XScale*iCol, clientHeight);
 
                 var track = m_ColumnToTrack[iCol];
@@ -1858,7 +1889,7 @@ namespace GroundControl
             var viewRect = Rectangle.FromLTRB(
                 m_VScroll_XMargin + m_VSCroll_XScale * leftCol,  (int)(m_VScroll_YMargin + m_VScroll_YScale * topRow),
                 m_VScroll_XMargin + m_VSCroll_XScale * rightCol, (int)(m_VScroll_YMargin + m_VScroll_YScale * botRow));
-            g.DrawRectangle(Pens.Yellow, viewRect);
+            g.DrawRectangle(m_Palette.PlayheadPen, viewRect);
         }
 
         private void panelVScroll_SizeChanged(object sender, EventArgs e)
@@ -1886,6 +1917,22 @@ namespace GroundControl
                 vScrollBar1.Value = Math.Max(0, (int)(centerRow    * RowHeight   - yOffset));
                 hScrollBar1.Value = Math.Max(0, (int)(centerColumn * ColumnWidth - xOffset));
             }
+        }
+
+        private void zoomToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            ChangeScaleFactor(true);
+        }
+
+        private void zoomToolStripMenuItem1_Click(object sender, EventArgs e)
+        {
+            ChangeScaleFactor(false);
+        }
+
+        private void resetZoomToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            m_ScaleFactor = 1;
+            Refresh();
         }
     }
 }

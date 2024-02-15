@@ -19,12 +19,13 @@ namespace GroundControl
             InitializeComponent();
 
             m_project = project;
-            udRows.Value             = m_project.Rows;
-            comboTimeFormatting.Text = m_project.TimeFormat;
-            txtInputFile.Text        = m_project.AudioFile;
-            udBPM.Value              = m_project.BPM         == 0 ? 120 : m_project.BPM;
-            udRowsPerBeat.Value      = m_project.RowsPerBeat == 0 ?   8 : m_project.RowsPerBeat;
-            udTimeOffset.Value       = m_project.AudioOffset;
+            udRows.Value               = m_project.Rows;
+            checkBoxLightTheme.Checked = m_project.LightTheme;
+            comboTimeFormatting.Text   = m_project.TimeFormat;
+            txtInputFile.Text          = m_project.AudioFile;
+            udBPM.Value                = m_project.BPM         == 0 ? 120 : m_project.BPM;
+            udRowsPerBeat.Value        = m_project.RowsPerBeat == 0 ?   8 : m_project.RowsPerBeat;
+            udTimeOffset.Value         = m_project.AudioOffset;
 
             // Force UI update
             TimingValuesChanged(null, null);
@@ -38,6 +39,7 @@ namespace GroundControl
             m_project.BPM         = (int)udBPM.Value;
             m_project.RowsPerBeat = (int)udRowsPerBeat.Value;
             m_project.AudioOffset = (int)udTimeOffset.Value;
+            m_project.LightTheme  = checkBoxLightTheme.Checked;
         }
 
         private void btnOpenFile_Click(object sender, EventArgs e)
